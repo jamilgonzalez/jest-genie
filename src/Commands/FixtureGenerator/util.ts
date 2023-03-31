@@ -4,7 +4,7 @@ const path = require('path')
 import { TextEncoder } from 'util'
 
 // key generated on Mar 30th
-const api_key = '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'
+const api_key = process.env.GPT_API_KEY
 
 // send code to server
 const openai_client = new openai(api_key)
