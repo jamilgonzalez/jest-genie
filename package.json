@@ -33,7 +33,7 @@
     "commands": [
       {
         "command": "fixtures-generator-poc.generateFixtures",
-        "title": "Generate Fixtures"
+        "title": "Generate Fixtures GPT"
       }
     ]
   },

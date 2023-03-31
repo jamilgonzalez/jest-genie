@@ -89,7 +89,7 @@ const displayOutput = (output) => {
     myOutputChannel.show();
 };
 const generateFixtures = async (uri) => {
-    const parsedKey = dotenv.config();
+    const parsedKey = dotenv.config({ path: '/Users/jamilgonzalez/fixtures-generator-poc/.env' });
     const api_key = parsedKey.parsed?.GPT_API_KEY;
     // get selected text
     const selectedText = getSelectedText();
@@ -4708,7 +4708,7 @@ const myTreeDataProvider = {
             label: element.fsPath,
             command: {
                 command: utils_1.Command.GenerateFixtures,
-                title: 'Generate Fixtures',
+                title: 'Generate Fixtures GPT',
                 arguments: [element],
             },
             contextValue: utils_1.Command.GenerateFixtures,

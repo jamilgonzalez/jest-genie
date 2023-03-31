@@ -40,7 +40,7 @@ const myTreeDataProvider: vscode.TreeDataProvider<vscode.Uri> = {
       label: element.fsPath,
       command: {
         command: Command.GenerateFixtures,
-        title: 'Generate Fixtures',
+        title: 'Generate Fixtures GPT',
         arguments: [element],
       },
       contextValue: Command.GenerateFixtures,
