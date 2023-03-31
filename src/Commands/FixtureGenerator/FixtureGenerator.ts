@@ -1,17 +1,81 @@
 import * as vscode from 'vscode'
+import { gptRequest } from '../../api/api'
+const path = require('path')
+import { TextEncoder } from 'util'
 
-import {
-  getSelectedText,
-  getNumFixturesRequested,
-  displayOutput,
-  Command,
-  gptRequest,
-  createFileInCurrentDirectory,
-  getNewFileUri,
-  myOutputChannel,
-} from './util'
+const getSelectedText = () => {
+  const editor = vscode.window.activeTextEditor
 
-const FixtureGenerator = async (context: vscode.ExtensionContext) => {
+  if (!editor) {
+    vscode.window.showErrorMessage('No active text editor found')
+    return
+  }
+
+  const selectedText = editor.document.getText(editor.selection)
+
+  if (selectedText.length === 0) {
+    vscode.window.showErrorMessage('No text selected')
+    return
+  }
+
+  return selectedText
+}
+
+const getNumFixturesRequested = async () => {
+  const numRequested = await vscode.window.showInputBox({
+    prompt: 'How many fixtures do you want to generate?',
+  })
+
+  if (!numRequested) {
+    vscode.window.showErrorMessage('Please enter a number')
+  } else if (Number(numRequested) > 7) {
+    vscode.window.showErrorMessage('Please enter a number less than or equal to 5')
+  } else {
+    return numRequested
+  }
+}
+
+const getNewFileUri = (filename: string) => {
+  const activeEditor = vscode.window.visibleTextEditors.find(
+    (editor) => editor.document.uri.scheme === 'file',
+  )
+
+  if (!activeEditor) {
+    vscode.window.showErrorMessage('No active editor found.')
+    return
+  }
+
+  const currentFilePath = activeEditor.document.fileName
+  const currentFileDirectory = path.dirname(currentFilePath)
+
+  return vscode.Uri.file(path.join(currentFileDirectory, filename))
+}
+
+async function createFileInCurrentDirectory(filename: string, content: string) {
+  const newFileUri = getNewFileUri(filename)
+
+  const fileData = new TextEncoder().encode(content)
+
+  if (!newFileUri) {
+    vscode.window.showErrorMessage('Could not create file.')
+    return
+  } else {
+    await vscode.workspace.fs.writeFile(newFileUri, fileData)
+    vscode.window.showInformationMessage(`File created: ${newFileUri.fsPath}`)
+  }
+}
+
+const myOutputChannel = vscode.window.createOutputChannel('My Output Channel')
+
+const displayOutput = (output: string) => {
+  // show output
+  myOutputChannel.appendLine(output)
+
+  // show output channel
+  myOutputChannel.show()
+}
+
+export const generateFixtures = async (uri: vscode.Uri) => {
   // get selected text
   const selectedText = getSelectedText()
 
@@ -39,11 +103,5 @@ const FixtureGenerator = async (context: vscode.ExtensionContext) => {
 
   // display output
   displayOutput(`Fixtures generated at ${getNewFileUri(filename)}`)
-
-  // register command
-  return vscode.commands.registerCommand(Command.GenerateFixtures, async () => {
-    context.subscriptions.push(myOutputChannel)
-  })
+  console.log('Generate Fixtures command executed:', uri.fsPath)
 }
-
-export { FixtureGenerator }

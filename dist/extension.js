@@ -9,13 +9,148 @@ module.exports = require("vscode");
 
 /***/ }),
 /* 2 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.generateFixtures = void 0;
+var FixtureGenerator_1 = __webpack_require__(3);
+Object.defineProperty(exports, "generateFixtures", ({ enumerable: true, get: function () { return FixtureGenerator_1.generateFixtures; } }));
+
+
+/***/ }),
+/* 3 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.generateFixtures = void 0;
+const vscode = __webpack_require__(1);
+const api_1 = __webpack_require__(4);
+const path = __webpack_require__(57);
+const util_1 = __webpack_require__(42);
+const getSelectedText = () => {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        vscode.window.showErrorMessage('No active text editor found');
+        return;
+    }
+    const selectedText = editor.document.getText(editor.selection);
+    if (selectedText.length === 0) {
+        vscode.window.showErrorMessage('No text selected');
+        return;
+    }
+    return selectedText;
+};
+const getNumFixturesRequested = async () => {
+    const numRequested = await vscode.window.showInputBox({
+        prompt: 'How many fixtures do you want to generate?',
+    });
+    if (!numRequested) {
+        vscode.window.showErrorMessage('Please enter a number');
+    }
+    else if (Number(numRequested) > 7) {
+        vscode.window.showErrorMessage('Please enter a number less than or equal to 5');
+    }
+    else {
+        return numRequested;
+    }
+};
+const getNewFileUri = (filename) => {
+    const activeEditor = vscode.window.visibleTextEditors.find((editor) => editor.document.uri.scheme === 'file');
+    if (!activeEditor) {
+        vscode.window.showErrorMessage('No active editor found.');
+        return;
+    }
+    const currentFilePath = activeEditor.document.fileName;
+    const currentFileDirectory = path.dirname(currentFilePath);
+    return vscode.Uri.file(path.join(currentFileDirectory, filename));
+};
+async function createFileInCurrentDirectory(filename, content) {
+    const newFileUri = getNewFileUri(filename);
+    const fileData = new util_1.TextEncoder().encode(content);
+    if (!newFileUri) {
+        vscode.window.showErrorMessage('Could not create file.');
+        return;
+    }
+    else {
+        await vscode.workspace.fs.writeFile(newFileUri, fileData);
+        vscode.window.showInformationMessage(`File created: ${newFileUri.fsPath}`);
+    }
+}
+const myOutputChannel = vscode.window.createOutputChannel('My Output Channel');
+const displayOutput = (output) => {
+    // show output
+    myOutputChannel.appendLine(output);
+    // show output channel
+    myOutputChannel.show();
+};
+const generateFixtures = async (uri) => {
+    // get selected text
+    const selectedText = getSelectedText();
+    // get number of fixtures to generate
+    const numFixturesRequested = await getNumFixturesRequested();
+    displayOutput('Generating fixtures...');
+    // generate prompt
+    const prompt = `generate ${numFixturesRequested} fixture(s) and output the result as consts with unique names and their type using the following type: ${selectedText}`;
+    // send request to GPT
+    const content = numFixturesRequested
+        ? await (0, api_1.gptRequest)(prompt)
+        : vscode.window.showErrorMessage('Could not request fixtures.');
+    // create file
+    const filename = 'fixtures.ts';
+    // create file in current directory
+    await createFileInCurrentDirectory(filename, content);
+    // clear output channel
+    myOutputChannel.clear();
+    // display output
+    displayOutput(`Fixtures generated at ${getNewFileUri(filename)}`);
+    console.log('Generate Fixtures command executed:', uri.fsPath);
+};
+exports.generateFixtures = generateFixtures;
+
+
+/***/ }),
+/* 4 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.gptRequest = void 0;
+// move to separate file
+const openai = __webpack_require__(5);
+const dotenv = __webpack_require__(55);
+const config = __webpack_require__(58);
+const parsedKey = dotenv.config({ path: '/Users/jamilgonzalez/fixtures-generator-poc/.env' });
+// key generated on Mar 30th
+const api_key = parsedKey.parsed?.GPT_API_KEY;
+const openai_client = new openai(api_key);
+const gptRequest = async (prompt) => {
+    // todo: add error handling, add logging, add tests, add CI/CD
+    const response = await openai_client.complete({
+        engine: config.model_engine,
+        prompt: prompt,
+        max_tokens: config.max_tokens,
+        n: config.completions,
+        stop: config.stop,
+    });
+    return response.data.choices[0].text.trim();
+};
+exports.gptRequest = gptRequest;
+
+
+/***/ }),
+/* 5 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-const config = __webpack_require__(3);
-const axios = __webpack_require__(4);
+const config = __webpack_require__(6);
+const axios = __webpack_require__(7);
 
 const DEFAULT_ENGINE = "davinci";
 
@@ -121,7 +256,7 @@ module.exports = OpenAI;
 
 
 /***/ }),
-/* 3 */
+/* 6 */
 /***/ ((module) => {
 
 const DEFAULT_ENGINE = 'davinci';
@@ -158,23 +293,23 @@ module.exports = {
 
 
 /***/ }),
-/* 4 */
+/* 7 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-module.exports = __webpack_require__(5);
+module.exports = __webpack_require__(8);
 
 /***/ }),
-/* 5 */
+/* 8 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(6);
-var bind = __webpack_require__(7);
-var Axios = __webpack_require__(8);
-var mergeConfig = __webpack_require__(46);
-var defaults = __webpack_require__(13);
+var utils = __webpack_require__(9);
+var bind = __webpack_require__(10);
+var Axios = __webpack_require__(11);
+var mergeConfig = __webpack_require__(49);
+var defaults = __webpack_require__(16);
 
 /**
  * Create an instance of Axios
@@ -207,18 +342,18 @@ axios.create = function create(instanceConfig) {
 };
 
 // Expose Cancel & CancelToken
-axios.Cancel = __webpack_require__(48);
-axios.CancelToken = __webpack_require__(49);
-axios.isCancel = __webpack_require__(45);
+axios.Cancel = __webpack_require__(51);
+axios.CancelToken = __webpack_require__(52);
+axios.isCancel = __webpack_require__(48);
 
 // Expose all/spread
 axios.all = function all(promises) {
   return Promise.all(promises);
 };
-axios.spread = __webpack_require__(50);
+axios.spread = __webpack_require__(53);
 
 // Expose isAxiosError
-axios.isAxiosError = __webpack_require__(51);
+axios.isAxiosError = __webpack_require__(54);
 
 module.exports = axios;
 
@@ -227,13 +362,13 @@ module.exports["default"] = axios;
 
 
 /***/ }),
-/* 6 */
+/* 9 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var bind = __webpack_require__(7);
+var bind = __webpack_require__(10);
 
 // utils is a library of generic helper functions non-specific to axios
 
@@ -583,7 +718,7 @@ module.exports = {
 
 
 /***/ }),
-/* 7 */
+/* 10 */
 /***/ ((module) => {
 
 "use strict";
@@ -601,18 +736,18 @@ module.exports = function bind(fn, thisArg) {
 
 
 /***/ }),
-/* 8 */
+/* 11 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(6);
-var buildURL = __webpack_require__(9);
-var InterceptorManager = __webpack_require__(10);
-var dispatchRequest = __webpack_require__(11);
-var mergeConfig = __webpack_require__(46);
-var validator = __webpack_require__(47);
+var utils = __webpack_require__(9);
+var buildURL = __webpack_require__(12);
+var InterceptorManager = __webpack_require__(13);
+var dispatchRequest = __webpack_require__(14);
+var mergeConfig = __webpack_require__(49);
+var validator = __webpack_require__(50);
 
 var validators = validator.validators;
 /**
@@ -756,13 +891,13 @@ module.exports = Axios;
 
 
 /***/ }),
-/* 9 */
+/* 12 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(6);
+var utils = __webpack_require__(9);
 
 function encode(val) {
   return encodeURIComponent(val).
@@ -833,13 +968,13 @@ module.exports = function buildURL(url, params, paramsSerializer) {
 
 
 /***/ }),
-/* 10 */
+/* 13 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(6);
+var utils = __webpack_require__(9);
 
 function InterceptorManager() {
   this.handlers = [];
@@ -894,16 +1029,16 @@ module.exports = InterceptorManager;
 
 
 /***/ }),
-/* 11 */
+/* 14 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(6);
-var transformData = __webpack_require__(12);
-var isCancel = __webpack_require__(45);
-var defaults = __webpack_require__(13);
+var utils = __webpack_require__(9);
+var transformData = __webpack_require__(15);
+var isCancel = __webpack_require__(48);
+var defaults = __webpack_require__(16);
 
 /**
  * Throws a `Cancel` if cancellation has been requested.
@@ -983,14 +1118,14 @@ module.exports = function dispatchRequest(config) {
 
 
 /***/ }),
-/* 12 */
+/* 15 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(6);
-var defaults = __webpack_require__(13);
+var utils = __webpack_require__(9);
+var defaults = __webpack_require__(16);
 
 /**
  * Transform the data for a request or a response
@@ -1012,15 +1147,15 @@ module.exports = function transformData(data, headers, fns) {
 
 
 /***/ }),
-/* 13 */
+/* 16 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(6);
-var normalizeHeaderName = __webpack_require__(14);
-var enhanceError = __webpack_require__(15);
+var utils = __webpack_require__(9);
+var normalizeHeaderName = __webpack_require__(17);
+var enhanceError = __webpack_require__(18);
 
 var DEFAULT_CONTENT_TYPE = {
   'Content-Type': 'application/x-www-form-urlencoded'
@@ -1036,10 +1171,10 @@ function getDefaultAdapter() {
   var adapter;
   if (typeof XMLHttpRequest !== 'undefined') {
     // For browsers use XHR adapter
-    adapter = __webpack_require__(16);
+    adapter = __webpack_require__(19);
   } else if (typeof process !== 'undefined' && Object.prototype.toString.call(process) === '[object process]') {
     // For node use HTTP adapter
-    adapter = __webpack_require__(25);
+    adapter = __webpack_require__(28);
   }
   return adapter;
 }
@@ -1153,13 +1288,13 @@ module.exports = defaults;
 
 
 /***/ }),
-/* 14 */
+/* 17 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(6);
+var utils = __webpack_require__(9);
 
 module.exports = function normalizeHeaderName(headers, normalizedName) {
   utils.forEach(headers, function processHeader(value, name) {
@@ -1172,7 +1307,7 @@ module.exports = function normalizeHeaderName(headers, normalizedName) {
 
 
 /***/ }),
-/* 15 */
+/* 18 */
 /***/ ((module) => {
 
 "use strict";
@@ -1221,20 +1356,20 @@ module.exports = function enhanceError(error, config, code, request, response) {
 
 
 /***/ }),
-/* 16 */
+/* 19 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(6);
-var settle = __webpack_require__(17);
-var cookies = __webpack_require__(19);
-var buildURL = __webpack_require__(9);
-var buildFullPath = __webpack_require__(20);
-var parseHeaders = __webpack_require__(23);
-var isURLSameOrigin = __webpack_require__(24);
-var createError = __webpack_require__(18);
+var utils = __webpack_require__(9);
+var settle = __webpack_require__(20);
+var cookies = __webpack_require__(22);
+var buildURL = __webpack_require__(12);
+var buildFullPath = __webpack_require__(23);
+var parseHeaders = __webpack_require__(26);
+var isURLSameOrigin = __webpack_require__(27);
+var createError = __webpack_require__(21);
 
 module.exports = function xhrAdapter(config) {
   return new Promise(function dispatchXhrRequest(resolve, reject) {
@@ -1417,13 +1552,13 @@ module.exports = function xhrAdapter(config) {
 
 
 /***/ }),
-/* 17 */
+/* 20 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var createError = __webpack_require__(18);
+var createError = __webpack_require__(21);
 
 /**
  * Resolve or reject a Promise based on response status.
@@ -1449,13 +1584,13 @@ module.exports = function settle(resolve, reject, response) {
 
 
 /***/ }),
-/* 18 */
+/* 21 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var enhanceError = __webpack_require__(15);
+var enhanceError = __webpack_require__(18);
 
 /**
  * Create an Error with the specified message, config, error code, request and response.
@@ -1474,13 +1609,13 @@ module.exports = function createError(message, config, code, request, response) 
 
 
 /***/ }),
-/* 19 */
+/* 22 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(6);
+var utils = __webpack_require__(9);
 
 module.exports = (
   utils.isStandardBrowserEnv() ?
@@ -1534,14 +1669,14 @@ module.exports = (
 
 
 /***/ }),
-/* 20 */
+/* 23 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var isAbsoluteURL = __webpack_require__(21);
-var combineURLs = __webpack_require__(22);
+var isAbsoluteURL = __webpack_require__(24);
+var combineURLs = __webpack_require__(25);
 
 /**
  * Creates a new URL by combining the baseURL with the requestedURL,
@@ -1561,7 +1696,7 @@ module.exports = function buildFullPath(baseURL, requestedURL) {
 
 
 /***/ }),
-/* 21 */
+/* 24 */
 /***/ ((module) => {
 
 "use strict";
@@ -1582,7 +1717,7 @@ module.exports = function isAbsoluteURL(url) {
 
 
 /***/ }),
-/* 22 */
+/* 25 */
 /***/ ((module) => {
 
 "use strict";
@@ -1603,13 +1738,13 @@ module.exports = function combineURLs(baseURL, relativeURL) {
 
 
 /***/ }),
-/* 23 */
+/* 26 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(6);
+var utils = __webpack_require__(9);
 
 // Headers whose duplicates are ignored by node
 // c.f. https://nodejs.org/api/http.html#http_message_headers
@@ -1663,13 +1798,13 @@ module.exports = function parseHeaders(headers) {
 
 
 /***/ }),
-/* 24 */
+/* 27 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(6);
+var utils = __webpack_require__(9);
 
 module.exports = (
   utils.isStandardBrowserEnv() ?
@@ -1738,25 +1873,25 @@ module.exports = (
 
 
 /***/ }),
-/* 25 */
+/* 28 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(6);
-var settle = __webpack_require__(17);
-var buildFullPath = __webpack_require__(20);
-var buildURL = __webpack_require__(9);
-var http = __webpack_require__(26);
-var https = __webpack_require__(27);
-var httpFollow = (__webpack_require__(28).http);
-var httpsFollow = (__webpack_require__(28).https);
-var url = __webpack_require__(29);
-var zlib = __webpack_require__(43);
-var pkg = __webpack_require__(44);
-var createError = __webpack_require__(18);
-var enhanceError = __webpack_require__(15);
+var utils = __webpack_require__(9);
+var settle = __webpack_require__(20);
+var buildFullPath = __webpack_require__(23);
+var buildURL = __webpack_require__(12);
+var http = __webpack_require__(29);
+var https = __webpack_require__(30);
+var httpFollow = (__webpack_require__(31).http);
+var httpsFollow = (__webpack_require__(31).https);
+var url = __webpack_require__(32);
+var zlib = __webpack_require__(46);
+var pkg = __webpack_require__(47);
+var createError = __webpack_require__(21);
+var enhanceError = __webpack_require__(18);
 
 var isHttps = /https:?/;
 
@@ -2076,30 +2211,30 @@ module.exports = function httpAdapter(config) {
 
 
 /***/ }),
-/* 26 */
+/* 29 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("http");
 
 /***/ }),
-/* 27 */
+/* 30 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("https");
 
 /***/ }),
-/* 28 */
+/* 31 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var url = __webpack_require__(29);
+var url = __webpack_require__(32);
 var URL = url.URL;
-var http = __webpack_require__(26);
-var https = __webpack_require__(27);
-var Writable = (__webpack_require__(30).Writable);
-var assert = __webpack_require__(31);
-var debug = __webpack_require__(32);
+var http = __webpack_require__(29);
+var https = __webpack_require__(30);
+var Writable = (__webpack_require__(33).Writable);
+var assert = __webpack_require__(34);
+var debug = __webpack_require__(35);
 
 // Create handlers that pass events from native requests
 var events = ["abort", "aborted", "connect", "error", "socket", "timeout"];
@@ -2717,28 +2852,28 @@ module.exports.wrap = wrap;
 
 
 /***/ }),
-/* 29 */
+/* 32 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("url");
 
 /***/ }),
-/* 30 */
+/* 33 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("stream");
 
 /***/ }),
-/* 31 */
+/* 34 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("assert");
 
 /***/ }),
-/* 32 */
+/* 35 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 var debug;
@@ -2747,7 +2882,7 @@ module.exports = function () {
   if (!debug) {
     try {
       /* eslint global-require: off */
-      debug = __webpack_require__(33)("follow-redirects");
+      debug = __webpack_require__(36)("follow-redirects");
     }
     catch (error) { /* */ }
     if (typeof debug !== "function") {
@@ -2759,7 +2894,7 @@ module.exports = function () {
 
 
 /***/ }),
-/* 33 */
+/* 36 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 /**
@@ -2768,14 +2903,14 @@ module.exports = function () {
  */
 
 if (typeof process === 'undefined' || process.type === 'renderer' || process.browser === true || process.__nwjs) {
-	module.exports = __webpack_require__(34);
-} else {
 	module.exports = __webpack_require__(37);
+} else {
+	module.exports = __webpack_require__(40);
 }
 
 
 /***/ }),
-/* 34 */
+/* 37 */
 /***/ ((module, exports, __webpack_require__) => {
 
 /* eslint-env browser */
@@ -3032,7 +3167,7 @@ function localstorage() {
 	}
 }
 
-module.exports = __webpack_require__(35)(exports);
+module.exports = __webpack_require__(38)(exports);
 
 const {formatters} = module.exports;
 
@@ -3050,7 +3185,7 @@ formatters.j = function (v) {
 
 
 /***/ }),
-/* 35 */
+/* 38 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 
@@ -3066,7 +3201,7 @@ function setup(env) {
 	createDebug.disable = disable;
 	createDebug.enable = enable;
 	createDebug.enabled = enabled;
-	createDebug.humanize = __webpack_require__(36);
+	createDebug.humanize = __webpack_require__(39);
 	createDebug.destroy = destroy;
 
 	Object.keys(env).forEach(key => {
@@ -3330,7 +3465,7 @@ module.exports = setup;
 
 
 /***/ }),
-/* 36 */
+/* 39 */
 /***/ ((module) => {
 
 /**
@@ -3498,15 +3633,15 @@ function plural(ms, msAbs, n, name) {
 
 
 /***/ }),
-/* 37 */
+/* 40 */
 /***/ ((module, exports, __webpack_require__) => {
 
 /**
  * Module dependencies.
  */
 
-const tty = __webpack_require__(38);
-const util = __webpack_require__(39);
+const tty = __webpack_require__(41);
+const util = __webpack_require__(42);
 
 /**
  * This is the Node.js implementation of `debug()`.
@@ -3532,7 +3667,7 @@ exports.colors = [6, 2, 3, 4, 5, 1];
 try {
 	// Optional dependency (as in, doesn't need to be installed, NOT like optionalDependencies in package.json)
 	// eslint-disable-next-line import/no-extraneous-dependencies
-	const supportsColor = __webpack_require__(40);
+	const supportsColor = __webpack_require__(43);
 
 	if (supportsColor && (supportsColor.stderr || supportsColor).level >= 2) {
 		exports.colors = [
@@ -3740,7 +3875,7 @@ function init(debug) {
 	}
 }
 
-module.exports = __webpack_require__(35)(exports);
+module.exports = __webpack_require__(38)(exports);
 
 const {formatters} = module.exports;
 
@@ -3767,28 +3902,28 @@ formatters.O = function (v) {
 
 
 /***/ }),
-/* 38 */
+/* 41 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("tty");
 
 /***/ }),
-/* 39 */
+/* 42 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("util");
 
 /***/ }),
-/* 40 */
+/* 43 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
-const os = __webpack_require__(41);
-const tty = __webpack_require__(38);
-const hasFlag = __webpack_require__(42);
+const os = __webpack_require__(44);
+const tty = __webpack_require__(41);
+const hasFlag = __webpack_require__(45);
 
 const {env} = process;
 
@@ -3940,14 +4075,14 @@ module.exports = {
 
 
 /***/ }),
-/* 41 */
+/* 44 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("os");
 
 /***/ }),
-/* 42 */
+/* 45 */
 /***/ ((module) => {
 
 "use strict";
@@ -3962,21 +4097,21 @@ module.exports = (flag, argv = process.argv) => {
 
 
 /***/ }),
-/* 43 */
+/* 46 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("zlib");
 
 /***/ }),
-/* 44 */
+/* 47 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = JSON.parse('{"name":"axios","version":"0.21.4","description":"Promise based HTTP client for the browser and node.js","main":"index.js","scripts":{"test":"grunt test","start":"node ./sandbox/server.js","build":"NODE_ENV=production grunt build","preversion":"npm test","version":"npm run build && grunt version && git add -A dist && git add CHANGELOG.md bower.json package.json","postversion":"git push && git push --tags","examples":"node ./examples/server.js","coveralls":"cat coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js","fix":"eslint --fix lib/**/*.js"},"repository":{"type":"git","url":"https://github.com/axios/axios.git"},"keywords":["xhr","http","ajax","promise","node"],"author":"Matt Zabriskie","license":"MIT","bugs":{"url":"https://github.com/axios/axios/issues"},"homepage":"https://axios-http.com","devDependencies":{"coveralls":"^3.0.0","es6-promise":"^4.2.4","grunt":"^1.3.0","grunt-banner":"^0.6.0","grunt-cli":"^1.2.0","grunt-contrib-clean":"^1.1.0","grunt-contrib-watch":"^1.0.0","grunt-eslint":"^23.0.0","grunt-karma":"^4.0.0","grunt-mocha-test":"^0.13.3","grunt-ts":"^6.0.0-beta.19","grunt-webpack":"^4.0.2","istanbul-instrumenter-loader":"^1.0.0","jasmine-core":"^2.4.1","karma":"^6.3.2","karma-chrome-launcher":"^3.1.0","karma-firefox-launcher":"^2.1.0","karma-jasmine":"^1.1.1","karma-jasmine-ajax":"^0.1.13","karma-safari-launcher":"^1.0.0","karma-sauce-launcher":"^4.3.6","karma-sinon":"^1.0.5","karma-sourcemap-loader":"^0.3.8","karma-webpack":"^4.0.2","load-grunt-tasks":"^3.5.2","minimist":"^1.2.0","mocha":"^8.2.1","sinon":"^4.5.0","terser-webpack-plugin":"^4.2.3","typescript":"^4.0.5","url-search-params":"^0.10.0","webpack":"^4.44.2","webpack-dev-server":"^3.11.0"},"browser":{"./lib/adapters/http.js":"./lib/adapters/xhr.js"},"jsdelivr":"dist/axios.min.js","unpkg":"dist/axios.min.js","typings":"./index.d.ts","dependencies":{"follow-redirects":"^1.14.0"},"bundlesize":[{"path":"./dist/axios.min.js","threshold":"5kB"}]}');
 
 /***/ }),
-/* 45 */
+/* 48 */
 /***/ ((module) => {
 
 "use strict";
@@ -3988,13 +4123,13 @@ module.exports = function isCancel(value) {
 
 
 /***/ }),
-/* 46 */
+/* 49 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(6);
+var utils = __webpack_require__(9);
 
 /**
  * Config-specific merge-function which creates a new config-object
@@ -4082,13 +4217,13 @@ module.exports = function mergeConfig(config1, config2) {
 
 
 /***/ }),
-/* 47 */
+/* 50 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var pkg = __webpack_require__(44);
+var pkg = __webpack_require__(47);
 
 var validators = {};
 
@@ -4194,7 +4329,7 @@ module.exports = {
 
 
 /***/ }),
-/* 48 */
+/* 51 */
 /***/ ((module) => {
 
 "use strict";
@@ -4220,13 +4355,13 @@ module.exports = Cancel;
 
 
 /***/ }),
-/* 49 */
+/* 52 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var Cancel = __webpack_require__(48);
+var Cancel = __webpack_require__(51);
 
 /**
  * A `CancelToken` is an object that can be used to request cancellation of an operation.
@@ -4284,7 +4419,7 @@ module.exports = CancelToken;
 
 
 /***/ }),
-/* 50 */
+/* 53 */
 /***/ ((module) => {
 
 "use strict";
@@ -4318,7 +4453,7 @@ module.exports = function spread(callback) {
 
 
 /***/ }),
-/* 51 */
+/* 54 */
 /***/ ((module) => {
 
 "use strict";
@@ -4336,149 +4471,144 @@ module.exports = function isAxiosError(payload) {
 
 
 /***/ }),
-/* 52 */
+/* 55 */
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+/* @flow */
+/*::
+
+type DotenvParseOptions = {
+  debug?: boolean
+}
+
+// keys and values from src
+type DotenvParseOutput = { [string]: string }
+
+type DotenvConfigOptions = {
+  path?: string, // path to .env file
+  encoding?: string, // encoding of .env file
+  debug?: string // turn on logging for debugging purposes
+}
+
+type DotenvConfigOutput = {
+  parsed?: DotenvParseOutput,
+  error?: Error
+}
+
+*/
+
+const fs = __webpack_require__(56)
+const path = __webpack_require__(57)
+
+function log (message /*: string */) {
+  console.log(`[dotenv][DEBUG] ${message}`)
+}
+
+const NEWLINE = '\n'
+const RE_INI_KEY_VAL = /^\s*([\w.-]+)\s*=\s*(.*)?\s*$/
+const RE_NEWLINES = /\\n/g
+const NEWLINES_MATCH = /\n|\r|\r\n/
+
+// Parses src into an Object
+function parse (src /*: string | Buffer */, options /*: ?DotenvParseOptions */) /*: DotenvParseOutput */ {
+  const debug = Boolean(options && options.debug)
+  const obj = {}
+
+  // convert Buffers before splitting into lines and processing
+  src.toString().split(NEWLINES_MATCH).forEach(function (line, idx) {
+    // matching "KEY' and 'VAL' in 'KEY=VAL'
+    const keyValueArr = line.match(RE_INI_KEY_VAL)
+    // matched?
+    if (keyValueArr != null) {
+      const key = keyValueArr[1]
+      // default undefined or missing values to empty string
+      let val = (keyValueArr[2] || '')
+      const end = val.length - 1
+      const isDoubleQuoted = val[0] === '"' && val[end] === '"'
+      const isSingleQuoted = val[0] === "'" && val[end] === "'"
+
+      // if single or double quoted, remove quotes
+      if (isSingleQuoted || isDoubleQuoted) {
+        val = val.substring(1, end)
+
+        // if double quoted, expand newlines
+        if (isDoubleQuoted) {
+          val = val.replace(RE_NEWLINES, NEWLINE)
+        }
+      } else {
+        // remove surrounding whitespace
+        val = val.trim()
+      }
+
+      obj[key] = val
+    } else if (debug) {
+      log(`did not match key and value when parsing line ${idx + 1}: ${line}`)
+    }
+  })
+
+  return obj
+}
+
+// Populates process.env from .env file
+function config (options /*: ?DotenvConfigOptions */) /*: DotenvConfigOutput */ {
+  let dotenvPath = path.resolve(process.cwd(), '.env')
+  let encoding /*: string */ = 'utf8'
+  let debug = false
+
+  if (options) {
+    if (options.path != null) {
+      dotenvPath = options.path
+    }
+    if (options.encoding != null) {
+      encoding = options.encoding
+    }
+    if (options.debug != null) {
+      debug = true
+    }
+  }
+
+  try {
+    // specifying an encoding returns a string instead of a buffer
+    const parsed = parse(fs.readFileSync(dotenvPath, { encoding }), { debug })
+
+    Object.keys(parsed).forEach(function (key) {
+      if (!Object.prototype.hasOwnProperty.call(process.env, key)) {
+        process.env[key] = parsed[key]
+      } else if (debug) {
+        log(`"${key}" is already defined in \`process.env\` and will not be overwritten`)
+      }
+    })
+
+    return { parsed }
+  } catch (e) {
+    return { error: e }
+  }
+}
+
+module.exports.config = config
+module.exports.parse = parse
+
+
+/***/ }),
+/* 56 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("fs");
+
+/***/ }),
+/* 57 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("path");
 
 /***/ }),
-/* 53 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+/* 58 */
+/***/ ((module) => {
 
 "use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.FixtureGenerator = void 0;
-const vscode = __webpack_require__(1);
-const util_1 = __webpack_require__(54);
-const FixtureGenerator = async (context) => {
-    // get selected text
-    const selectedText = (0, util_1.getSelectedText)();
-    // get number of fixtures to generate
-    const numFixturesRequested = await (0, util_1.getNumFixturesRequested)();
-    (0, util_1.displayOutput)('Generating fixtures...');
-    // generate prompt
-    const prompt = `generate ${numFixturesRequested} fixture(s) and output the result as consts with unique names and their type using the following type: ${selectedText}`;
-    // send request to GPT
-    const content = numFixturesRequested
-        ? await (0, util_1.gptRequest)(prompt)
-        : vscode.window.showErrorMessage('Could not request fixtures.');
-    // create file
-    const filename = 'fixtures.ts';
-    // create file in current directory
-    await (0, util_1.createFileInCurrentDirectory)(filename, content);
-    // clear output channel
-    util_1.myOutputChannel.clear();
-    // display output
-    (0, util_1.displayOutput)(`Fixtures generated at ${(0, util_1.getNewFileUri)(filename)}`);
-    // register command
-    return vscode.commands.registerCommand(util_1.Command.GenerateFixtures, async () => {
-        context.subscriptions.push(util_1.myOutputChannel);
-    });
-};
-exports.FixtureGenerator = FixtureGenerator;
-
-
-/***/ }),
-/* 54 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.gptRequest = exports.getSelectedText = exports.getNumFixturesRequested = exports.displayOutput = exports.Command = exports.getNewFileUri = exports.createFileInCurrentDirectory = exports.myOutputChannel = void 0;
-const vscode = __webpack_require__(1);
-const openai = __webpack_require__(2);
-const path = __webpack_require__(52);
-const util_1 = __webpack_require__(39);
-// key generated on Mar 30th
-const api_key = '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';
-// send code to server
-const openai_client = new openai(api_key);
-const model_engine = 'text-davinci-002';
-const completions = 1;
-const getSelectedText = () => {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-        vscode.window.showErrorMessage('No active text editor found');
-        return;
-    }
-    const selectedText = editor.document.getText(editor.selection);
-    if (selectedText.length === 0) {
-        vscode.window.showErrorMessage('No text selected');
-        return;
-    }
-    return selectedText;
-};
-exports.getSelectedText = getSelectedText;
-const getNumFixturesRequested = async () => {
-    const numRequested = await vscode.window.showInputBox({
-        prompt: 'How many fixtures do you want to generate?',
-    });
-    if (!numRequested) {
-        vscode.window.showErrorMessage('Please enter a number');
-    }
-    else if (Number(numRequested) > 7) {
-        vscode.window.showErrorMessage('Please enter a number less than or equal to 5');
-    }
-    else {
-        return numRequested;
-    }
-};
-exports.getNumFixturesRequested = getNumFixturesRequested;
-const gptRequest = async (prompt) => {
-    // todo: add error handling, add logging, add tests, add CI/CD
-    const response = await openai_client.complete({
-        engine: model_engine,
-        prompt: prompt,
-        max_tokens: 1024,
-        n: completions,
-        stop: '\\n',
-    });
-    console.log(response);
-    return response.data.choices[0].text.trim();
-};
-exports.gptRequest = gptRequest;
-const getNewFileUri = (filename) => {
-    const activeEditor = vscode.window.visibleTextEditors.find((editor) => editor.document.uri.scheme === 'file');
-    if (!activeEditor) {
-        vscode.window.showErrorMessage('No active editor found.');
-        return;
-    }
-    const currentFilePath = activeEditor.document.fileName;
-    const currentFileDirectory = path.dirname(currentFilePath);
-    return vscode.Uri.file(path.join(currentFileDirectory, filename));
-};
-exports.getNewFileUri = getNewFileUri;
-async function createFileInCurrentDirectory(filename, content) {
-    const newFileUri = getNewFileUri(filename);
-    const fileData = new util_1.TextEncoder().encode(content);
-    if (!newFileUri) {
-        vscode.window.showErrorMessage('Could not create file.');
-        return;
-    }
-    else {
-        await vscode.workspace.fs.writeFile(newFileUri, fileData);
-        vscode.window.showInformationMessage(`File created: ${newFileUri.fsPath}`);
-    }
-}
-exports.createFileInCurrentDirectory = createFileInCurrentDirectory;
-const myOutputChannel = vscode.window.createOutputChannel('My Output Channel');
-exports.myOutputChannel = myOutputChannel;
-const displayOutput = (output) => {
-    // show output
-    myOutputChannel.appendLine(output);
-    // show output channel
-    myOutputChannel.show();
-};
-exports.displayOutput = displayOutput;
-var Command;
-(function (Command) {
-    Command["GenerateFixtures"] = "fixtures-generator-poc.fixture-gpt";
-})(Command || (Command = {}));
-exports.Command = Command;
-
+module.exports = JSON.parse('{"model_engine":"text-davinci-002","completions":1,"max_tokens":1024,"stop":"\\\\n"}');
 
 /***/ })
 /******/ 	]);
@@ -4519,23 +4649,22 @@ exports.deactivate = exports.activate = void 0;
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = __webpack_require__(1);
-const FixtureGenerator_1 = __webpack_require__(53);
+const FixtureGenerator_1 = __webpack_require__(2);
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 async function activate(context) {
-    const fixtureGenerator = await (0, FixtureGenerator_1.FixtureGenerator)(context);
-    context.subscriptions.push(fixtureGenerator);
-    vscode.commands.executeCommand('setContext', 'myExtensionExplorer', true);
-    context.subscriptions.push(vscode.commands.registerCommand('fixtures-generator-poc.generateFixtures', async (uri) => {
-        // Execute your command logic here
-        console.log('Generate Fixtures command executed:', uri.fsPath);
-    }));
+    vscode.commands.executeCommand('setContext', 'fixtures-generator-poc.generateFixtures', true);
+    // The command has been defined in the package.json file
+    context.subscriptions.push(vscode.commands.registerCommand('fixtures-generator-poc.generateFixtures', async (uri) => await (0, FixtureGenerator_1.generateFixtures)(uri)));
+    // create tree view
     vscode.window.createTreeView('fixtures-generator-poc.generateFixtures', {
         treeDataProvider: myTreeDataProvider,
     });
+    // register tree view
     vscode.window.registerTreeDataProvider('fixtures-generator-poc.generateFixtures', myTreeDataProvider);
 }
 exports.activate = activate;
+// tree view
 const myTreeDataProvider = {
     getChildren: async (element) => {
         if (!element) {
@@ -4553,7 +4682,7 @@ const myTreeDataProvider = {
                 title: 'Generate Fixtures',
                 arguments: [element],
             },
-            contextValue: 'myExtensionExplorer',
+            contextValue: 'fixtures-generator-poc.generateFixtures',
         };
     },
 };
