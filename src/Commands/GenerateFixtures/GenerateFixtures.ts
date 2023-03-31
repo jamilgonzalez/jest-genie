@@ -1,7 +1,8 @@
-import * as vscode from 'vscode'
-import { gptRequest } from '../../api/api'
 const path = require('path')
+import * as vscode from 'vscode'
+import * as dotenv from 'dotenv'
 import { TextEncoder } from 'util'
+import { gptRequest } from '../../api/api'
 
 const getSelectedText = () => {
   const editor = vscode.window.activeTextEditor
@@ -27,7 +28,7 @@ const getNumFixturesRequested = async () => {
   })
 
   if (!numRequested) {
-    vscode.window.showErrorMessage('Please enter a number')
+    return
   } else if (Number(numRequested) > 7) {
     vscode.window.showErrorMessage('Please enter a number less than or equal to 5')
   } else {
@@ -76,6 +77,9 @@ const displayOutput = (output: string) => {
 }
 
 export const generateFixtures = async (uri: vscode.Uri) => {
+  const parsedKey = dotenv.config()
+  const api_key = parsedKey.parsed?.GPT_API_KEY
+
   // get selected text
   const selectedText = getSelectedText()
 
@@ -96,9 +100,22 @@ export const generateFixtures = async (uri: vscode.Uri) => {
   const prompt = `generate ${numFixturesRequested} fixture(s) and output the result as consts with unique names and their type using the following type: ${selectedText}`
 
   // send request to GPT
-  const content = numFixturesRequested
-    ? await gptRequest(prompt)
-    : vscode.window.showErrorMessage('Could not request fixtures.')
+  let content
+  if (numFixturesRequested && api_key) {
+    content = await gptRequest(prompt, api_key)
+  } else {
+    vscode.window.showErrorMessage(
+      `${
+        !numFixturesRequested
+          ? 'Please specify how many fixures you want created.'
+          : !api_key
+          ? 'Please provide api key'
+          : 'Unable to create fixtures.'
+      }`,
+    )
+    myOutputChannel.clear()
+    return
+  }
 
   // create file
   const filename = 'fixtures.ts'
