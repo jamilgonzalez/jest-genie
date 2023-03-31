@@ -10,6 +10,15 @@ This VS Code extension allows you to generate mock test data for TypeScript type
 
 ## Usage
 
+To use the Mock Data Generator GPT VS Code Extension, you will need to obtain an API key from OpenAI. Once you have your API key, you will need to create a `.env` file at the root of your directory and add the following line:
+
+```
+GPT_API_KEY=your-api-key-here
+
+```
+
+Replace `your-api-key-here` with your actual API key. This will allow the extension to communicate with the OpenAI GPT API and generate mock data for your TypeScript types and interfaces.
+
 To generate mock data for a TypeScript type or interface:
 
 1. Install the Mock Data Generator extension from the VS Code Marketplace.
