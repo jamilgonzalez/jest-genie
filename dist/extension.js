@@ -15,8 +15,8 @@ module.exports = require("vscode");
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.generateFixtures = void 0;
-var FixtureGenerator_1 = __webpack_require__(3);
-Object.defineProperty(exports, "generateFixtures", ({ enumerable: true, get: function () { return FixtureGenerator_1.generateFixtures; } }));
+var GenerateFixtures_1 = __webpack_require__(3);
+Object.defineProperty(exports, "generateFixtures", ({ enumerable: true, get: function () { return GenerateFixtures_1.generateFixtures; } }));
 
 
 /***/ }),
@@ -4615,6 +4615,20 @@ module.exports = require("path");
 "use strict";
 module.exports = JSON.parse('{"model_engine":"text-davinci-002","completions":1,"max_tokens":1024,"stop":"\\\\n"}');
 
+/***/ }),
+/* 59 */
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Command = void 0;
+var Command;
+(function (Command) {
+    Command["GenerateFixtures"] = "fixtures-generator-poc.generateFixtures";
+})(Command = exports.Command || (exports.Command = {}));
+
+
 /***/ })
 /******/ 	]);
 /************************************************************************/
@@ -4654,19 +4668,20 @@ exports.deactivate = exports.activate = void 0;
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = __webpack_require__(1);
-const FixtureGenerator_1 = __webpack_require__(2);
+const GenerateFixtures_1 = __webpack_require__(2);
+const utils_1 = __webpack_require__(59);
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 async function activate(context) {
-    vscode.commands.executeCommand('setContext', 'fixtures-generator-poc.generateFixtures', true);
-    // The command has been defined in the package.json file
-    context.subscriptions.push(vscode.commands.registerCommand('fixtures-generator-poc.generateFixtures', async (uri) => await (0, FixtureGenerator_1.generateFixtures)(uri)));
+    // vscode.commands.executeCommand('setContext', 'Command.GenerateFixtures', true)
+    // register command and push to subscriptions
+    context.subscriptions.push(vscode.commands.registerCommand(utils_1.Command.GenerateFixtures, async (uri) => await (0, GenerateFixtures_1.generateFixtures)(uri)));
     // create tree view
-    vscode.window.createTreeView('fixtures-generator-poc.generateFixtures', {
+    vscode.window.createTreeView(utils_1.Command.GenerateFixtures, {
         treeDataProvider: myTreeDataProvider,
     });
     // register tree view
-    vscode.window.registerTreeDataProvider('fixtures-generator-poc.generateFixtures', myTreeDataProvider);
+    vscode.window.registerTreeDataProvider(utils_1.Command.GenerateFixtures, myTreeDataProvider);
 }
 exports.activate = activate;
 // tree view
@@ -4683,11 +4698,11 @@ const myTreeDataProvider = {
         return {
             label: element.fsPath,
             command: {
-                command: 'fixtures-generator-poc.generateFixtures',
+                command: utils_1.Command.GenerateFixtures,
                 title: 'Generate Fixtures',
                 arguments: [element],
             },
-            contextValue: 'fixtures-generator-poc.generateFixtures',
+            contextValue: utils_1.Command.GenerateFixtures,
         };
     },
 };
