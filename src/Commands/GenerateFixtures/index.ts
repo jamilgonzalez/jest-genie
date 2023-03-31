@@ -1,0 +1,1 @@
+export { generateFixtures } from './GenerateFixtures'

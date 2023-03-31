@@ -1,31 +1,29 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode'
-import { generateFixtures } from './Commands/FixtureGenerator'
+import { generateFixtures } from './Commands/GenerateFixtures'
+import { Command } from './Commands/utils'
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
-  vscode.commands.executeCommand('setContext', 'fixtures-generator-poc.generateFixtures', true)
+  // vscode.commands.executeCommand('setContext', 'Command.GenerateFixtures', true)
 
-  // The command has been defined in the package.json file
+  // register command and push to subscriptions
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      'fixtures-generator-poc.generateFixtures',
+      Command.GenerateFixtures,
       async (uri: vscode.Uri) => await generateFixtures(uri),
     ),
   )
 
   // create tree view
-  vscode.window.createTreeView('fixtures-generator-poc.generateFixtures', {
+  vscode.window.createTreeView(Command.GenerateFixtures, {
     treeDataProvider: myTreeDataProvider,
   })
 
   // register tree view
-  vscode.window.registerTreeDataProvider(
-    'fixtures-generator-poc.generateFixtures',
-    myTreeDataProvider,
-  )
+  vscode.window.registerTreeDataProvider(Command.GenerateFixtures, myTreeDataProvider)
 }
 
 // tree view
@@ -41,11 +39,11 @@ const myTreeDataProvider: vscode.TreeDataProvider<vscode.Uri> = {
     return {
       label: element.fsPath,
       command: {
-        command: 'fixtures-generator-poc.generateFixtures',
+        command: Command.GenerateFixtures,
         title: 'Generate Fixtures',
         arguments: [element],
       },
-      contextValue: 'fixtures-generator-poc.generateFixtures',
+      contextValue: Command.GenerateFixtures,
     }
   },
 }
