@@ -79,6 +79,14 @@ export const generateFixtures = async (uri: vscode.Uri) => {
   // get selected text
   const selectedText = getSelectedText()
 
+  if (
+    selectedText === undefined ||
+    !['type', 'interface'].some((keyWord) => selectedText.includes(keyWord))
+  ) {
+    vscode.window.showErrorMessage('Please select a type or interface')
+    return
+  }
+
   // get number of fixtures to generate
   const numFixturesRequested = await getNumFixturesRequested()
 

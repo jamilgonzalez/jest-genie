@@ -90,6 +90,11 @@ const displayOutput = (output) => {
 const generateFixtures = async (uri) => {
     // get selected text
     const selectedText = getSelectedText();
+    if (selectedText === undefined ||
+        !['type', 'interface'].some((keyWord) => selectedText.includes(keyWord))) {
+        vscode.window.showErrorMessage('Please select a type or interface');
+        return;
+    }
     // get number of fixtures to generate
     const numFixturesRequested = await getNumFixturesRequested();
     displayOutput('Generating fixtures...');
@@ -124,7 +129,7 @@ exports.gptRequest = void 0;
 const openai = __webpack_require__(5);
 const dotenv = __webpack_require__(55);
 const config = __webpack_require__(58);
-const parsedKey = dotenv.config({ path: '/Users/jamilgonzalez/fixtures-generator-poc/.env' });
+const parsedKey = dotenv.config();
 // key generated on Mar 30th
 const api_key = parsedKey.parsed?.GPT_API_KEY;
 const openai_client = new openai(api_key);
