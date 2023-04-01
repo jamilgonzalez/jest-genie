@@ -116,7 +116,7 @@ const parseSelectedText = (selectedText) => {
 };
 // what kind of params would make sense here?
 const generateFixtures = async (uri) => {
-    const parsedKey = dotenv.config({ path: '/Users/jamilgonzalez/fixtures-generator-poc/.env' });
+    const parsedKey = dotenv.config({ path: '/Users/jamilgonzalez/Mock-Data-Generator-GPT/.env' });
     const api_key = parsedKey.parsed?.GPT_API_KEY || '';
     // get selected text
     const selectedText = getSelectedText();
