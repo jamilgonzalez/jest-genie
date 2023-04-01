@@ -13,7 +13,5 @@ export const gptRequest = async (prompt: string, api_key: string) => {
     stop: config.stop,
   })
 
-  console.log(response)
-
   return response.data.choices[0].text.trim()
 }
