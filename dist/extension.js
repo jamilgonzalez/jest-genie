@@ -32,6 +32,8 @@ const vscode = __webpack_require__(1);
 const dotenv = __webpack_require__(5);
 const util_1 = __webpack_require__(7);
 const api_1 = __webpack_require__(8);
+const delay = __webpack_require__(59);
+// { path: '/Users/jamilgonzalez/fixtures-generator-poc/.env' }
 const getSelectedText = () => {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -43,6 +45,9 @@ const getSelectedText = () => {
         vscode.window.showErrorMessage('No text selected');
         return;
     }
+    myOutputChannel.appendLine(selectedText.split(' ').length > 1024
+        ? 'Too many words must be below 1024'
+        : `Input length is ${selectedText.split(' ').length} words`);
     return selectedText;
 };
 const getNumFixturesRequested = async () => {
@@ -81,6 +86,17 @@ async function createFileInCurrentDirectory(filename, content) {
         vscode.window.showInformationMessage(`File created: ${newFileUri.fsPath}`);
     }
 }
+function splitArray(arr, predicate) {
+    return arr.reduce((acc, item) => {
+        if (predicate(item)) {
+            acc[0].push(item); // add item to first element of tuple
+        }
+        else {
+            acc[1].push(item); // add item to second element of tuple
+        }
+        return acc;
+    }, [[], []]);
+}
 const myOutputChannel = vscode.window.createOutputChannel('My Output Channel');
 const displayOutput = (output) => {
     // show output
@@ -89,7 +105,8 @@ const displayOutput = (output) => {
     myOutputChannel.show();
 };
 const generateFixtures = async (uri) => {
-    const parsedKey = dotenv.config();
+    // const parsedKey = dotenv.config({ path: '/Users/jamilgonzalez/fixtures-generator-poc/.env' })
+    const parsedKey = dotenv.config({ path: '/Users/jamilgonzalez/fixtures-generator-poc/.env' });
     const api_key = parsedKey.parsed?.GPT_API_KEY;
     // get selected text
     const selectedText = getSelectedText();
@@ -98,15 +115,31 @@ const generateFixtures = async (uri) => {
         vscode.window.showErrorMessage('Please select a type or interface');
         return;
     }
+    // regex to match interfaces and types
+    const regex = /^(?:(?:export\s+))?(?:interface|type)\s+\w+\s*\{[\s\S]*?\}(?:\s*\n)?$/gm;
+    const delimiter = '#####UNIQUE_DELIMITER#####';
+    const replacedText = selectedText.replace(regex, delimiter);
+    const otherCodeBlocks = replacedText
+        .split(delimiter)
+        .filter((item) => item !== '\n' && item !== '');
+    const interfacesOrTypes = selectedText
+        .match(regex)
+        ?.filter((item) => item !== '\n' && item !== '');
     // get number of fixtures to generate
     const numFixturesRequested = await getNumFixturesRequested();
     displayOutput('Generating fixtures...');
     // generate prompt
-    const prompt = `generate ${numFixturesRequested} fixture(s) and output the result as consts with unique names and their type using the following type: ${selectedText}`;
+    const prompt = (interfaceOrType, projectLanguage) => 
+    // `generate ${numFixturesRequested} test data for each interface or type I provide. Assign the output to a const with unique name and make sure each field has a value: ${interfaceOrType}`
+    `Generate ${numFixturesRequested} test data for the type or interface I provide from my ${projectLanguage} project. Here's the definition: ${interfaceOrType} \n\n Please ensure that each field has a value and assign the test data to a const with a unique name with the appropriate type. Thank you!"`;
     // send request to GPT
     let content;
     if (numFixturesRequested && api_key) {
-        content = await (0, api_1.gptRequest)(prompt, api_key);
+        const releventCode = `${otherCodeBlocks}}`;
+        content = interfacesOrTypes?.map(async (item) => {
+            console.log(prompt(item.concat(`${releventCode}`), 'typescript'));
+            return await (0, api_1.gptRequest)(prompt(item.concat(`${releventCode}`), 'typescript'), api_key);
+        });
     }
     else {
         vscode.window.showErrorMessage(`${!numFixturesRequested
@@ -119,8 +152,12 @@ const generateFixtures = async (uri) => {
     }
     // create file
     const filename = 'fixtures.ts';
-    // create file in current directory
-    await createFileInCurrentDirectory(filename, content);
+    if (content) {
+        const response = await Promise.all(content).then((res) => res.join(''));
+        console.log(response);
+        // create file in current directory
+        await createFileInCurrentDirectory(filename, response);
+    }
     // clear output channel
     myOutputChannel.clear();
     // display output
@@ -291,6 +328,7 @@ const gptRequest = async (prompt, api_key) => {
         n: config.completions,
         stop: config.stop,
     });
+    console.log(response);
     return response.data.choices[0].text.trim();
 };
 exports.gptRequest = gptRequest;
@@ -4626,6 +4664,85 @@ module.exports = JSON.parse('{"model_engine":"text-davinci-002","completions":1,
 
 /***/ }),
 /* 59 */
+/***/ ((module) => {
+
+"use strict";
+
+
+// From https://github.com/sindresorhus/random-int/blob/c37741b56f76b9160b0b63dae4e9c64875128146/index.js#L13-L15
+const randomInteger = (minimum, maximum) => Math.floor((Math.random() * (maximum - minimum + 1)) + minimum);
+
+const createAbortError = () => {
+	const error = new Error('Delay aborted');
+	error.name = 'AbortError';
+	return error;
+};
+
+const createDelay = ({clearTimeout: defaultClear, setTimeout: set, willResolve}) => (ms, {value, signal} = {}) => {
+	if (signal && signal.aborted) {
+		return Promise.reject(createAbortError());
+	}
+
+	let timeoutId;
+	let settle;
+	let rejectFn;
+	const clear = defaultClear || clearTimeout;
+
+	const signalListener = () => {
+		clear(timeoutId);
+		rejectFn(createAbortError());
+	};
+
+	const cleanup = () => {
+		if (signal) {
+			signal.removeEventListener('abort', signalListener);
+		}
+	};
+
+	const delayPromise = new Promise((resolve, reject) => {
+		settle = () => {
+			cleanup();
+			if (willResolve) {
+				resolve(value);
+			} else {
+				reject(value);
+			}
+		};
+
+		rejectFn = reject;
+		timeoutId = (set || setTimeout)(settle, ms);
+	});
+
+	if (signal) {
+		signal.addEventListener('abort', signalListener, {once: true});
+	}
+
+	delayPromise.clear = () => {
+		clear(timeoutId);
+		timeoutId = null;
+		settle();
+	};
+
+	return delayPromise;
+};
+
+const createWithTimers = clearAndSet => {
+	const delay = createDelay({...clearAndSet, willResolve: true});
+	delay.reject = createDelay({...clearAndSet, willResolve: false});
+	delay.range = (minimum, maximum, options) => delay(randomInteger(minimum, maximum), options);
+	return delay;
+};
+
+const delay = createWithTimers();
+delay.createWithTimers = createWithTimers;
+
+module.exports = delay;
+// TODO: Remove this for the next major release
+module.exports["default"] = delay;
+
+
+/***/ }),
+/* 60 */
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -4678,7 +4795,7 @@ exports.deactivate = exports.activate = void 0;
 // Import the module and reference it with the alias vscode in your code below
 const vscode = __webpack_require__(1);
 const GenerateFixtures_1 = __webpack_require__(2);
-const utils_1 = __webpack_require__(59);
+const utils_1 = __webpack_require__(60);
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 async function activate(context) {
