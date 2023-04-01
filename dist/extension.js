@@ -8,129 +8,8 @@
 module.exports = require("vscode");
 
 /***/ }),
-/* 2 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.generateFixtures = void 0;
-var GenerateFixtures_1 = __webpack_require__(3);
-Object.defineProperty(exports, "generateFixtures", ({ enumerable: true, get: function () { return GenerateFixtures_1.generateFixtures; } }));
-
-
-/***/ }),
-/* 3 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.generateFixtures = void 0;
-const path = __webpack_require__(4);
-const vscode = __webpack_require__(1);
-const dotenv = __webpack_require__(5);
-const util_1 = __webpack_require__(7);
-const api_1 = __webpack_require__(8);
-const getSelectedText = () => {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-        vscode.window.showErrorMessage('No active text editor found');
-        return;
-    }
-    const selectedText = editor.document.getText(editor.selection);
-    if (selectedText.length === 0) {
-        vscode.window.showErrorMessage('No text selected');
-        return;
-    }
-    return selectedText;
-};
-const getNumFixturesRequested = async () => {
-    const numRequested = await vscode.window.showInputBox({
-        prompt: 'How many fixtures do you want to generate?',
-    });
-    if (!numRequested) {
-        return;
-    }
-    else if (Number(numRequested) > 7) {
-        vscode.window.showErrorMessage('Please enter a number less than or equal to 5');
-    }
-    else {
-        return numRequested;
-    }
-};
-const getNewFileUri = (filename) => {
-    const activeEditor = vscode.window.visibleTextEditors.find((editor) => editor.document.uri.scheme === 'file');
-    if (!activeEditor) {
-        vscode.window.showErrorMessage('No active editor found.');
-        return;
-    }
-    const currentFilePath = activeEditor.document.fileName;
-    const currentFileDirectory = path.dirname(currentFilePath);
-    return vscode.Uri.file(path.join(currentFileDirectory, filename));
-};
-async function createFileInCurrentDirectory(filename, content) {
-    const newFileUri = getNewFileUri(filename);
-    const fileData = new util_1.TextEncoder().encode(content);
-    if (!newFileUri) {
-        vscode.window.showErrorMessage('Could not create file.');
-        return;
-    }
-    else {
-        await vscode.workspace.fs.writeFile(newFileUri, fileData);
-        vscode.window.showInformationMessage(`File created: ${newFileUri.fsPath}`);
-    }
-}
-const myOutputChannel = vscode.window.createOutputChannel('My Output Channel');
-const displayOutput = (output) => {
-    // show output
-    myOutputChannel.appendLine(output);
-    // show output channel
-    myOutputChannel.show();
-};
-const generateFixtures = async (uri) => {
-    const parsedKey = dotenv.config();
-    const api_key = parsedKey.parsed?.GPT_API_KEY;
-    // get selected text
-    const selectedText = getSelectedText();
-    if (selectedText === undefined ||
-        !['type', 'interface'].some((keyWord) => selectedText.includes(keyWord))) {
-        vscode.window.showErrorMessage('Please select a type or interface');
-        return;
-    }
-    // get number of fixtures to generate
-    const numFixturesRequested = await getNumFixturesRequested();
-    displayOutput('Generating fixtures...');
-    // generate prompt
-    const prompt = `generate ${numFixturesRequested} fixture(s) and output the result as consts with unique names and their type using the following type: ${selectedText}`;
-    // send request to GPT
-    let content;
-    if (numFixturesRequested && api_key) {
-        content = await (0, api_1.gptRequest)(prompt, api_key);
-    }
-    else {
-        vscode.window.showErrorMessage(`${!numFixturesRequested
-            ? 'Please specify how many fixures you want created.'
-            : !api_key
-                ? 'Please provide api key'
-                : 'Unable to create fixtures.'}`);
-        myOutputChannel.clear();
-        return;
-    }
-    // create file
-    const filename = 'fixtures.ts';
-    // create file in current directory
-    await createFileInCurrentDirectory(filename, content);
-    // clear output channel
-    myOutputChannel.clear();
-    // display output
-    displayOutput(`Fixtures generated at ${getNewFileUri(filename)}`);
-    console.log('Generate Fixtures command executed:', uri.fsPath);
-};
-exports.generateFixtures = generateFixtures;
-
-
-/***/ }),
+/* 2 */,
+/* 3 */,
 /* 4 */
 /***/ ((module) => {
 
@@ -4626,6 +4505,157 @@ module.exports = JSON.parse('{"model_engine":"text-davinci-002","completions":1,
 
 /***/ }),
 /* 59 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.generateFixtures = void 0;
+const path = __webpack_require__(4);
+const vscode = __webpack_require__(1);
+const dotenv = __webpack_require__(5);
+const util_1 = __webpack_require__(7);
+const api_1 = __webpack_require__(8);
+const getSelectedText = (editor) => {
+    if (!editor) {
+        vscode.window.showErrorMessage('No active text editor found');
+        return;
+    }
+    const selectedText = editor.document.getText(editor.selection);
+    if (selectedText.length === 0) {
+        vscode.window.showErrorMessage('No text selected');
+        return;
+    }
+    myOutputChannel.appendLine(selectedText.split(' ').length > 1024
+        ? 'Too many words must be below 1024'
+        : `Input length is ${selectedText.split(' ').length} words`);
+    return selectedText;
+};
+const getNumFixturesRequested = async (window) => {
+    const numRequested = await window.showInputBox({
+        prompt: 'How many fixtures do you want to generate?',
+    });
+    if (!numRequested) {
+        return;
+    }
+    else if (Number(numRequested) > 7) {
+        vscode.window.showErrorMessage('Please enter a number less than or equal to 5');
+    }
+    else {
+        return numRequested;
+    }
+};
+const getNewFileUri = (filename) => {
+    const activeEditor = vscode.window.visibleTextEditors.find((editor) => editor.document.uri.scheme === 'file');
+    if (!activeEditor) {
+        vscode.window.showErrorMessage('No active editor found.');
+        return;
+    }
+    const currentFilePath = activeEditor.document.fileName;
+    const extension = path.extname(currentFilePath);
+    const currentFileDirectory = path.dirname(currentFilePath);
+    return vscode.Uri.file(path.join(currentFileDirectory, filename.concat(extension)));
+};
+async function createFileInCurrentDirectory(content) {
+    const newFileUri = getNewFileUri('fixtures');
+    console.log(newFileUri);
+    const fileData = new util_1.TextEncoder().encode(content);
+    if (!newFileUri) {
+        vscode.window.showErrorMessage('Could not create file.');
+        return;
+    }
+    else {
+        await vscode.workspace.fs.writeFile(newFileUri, fileData);
+        vscode.window.showInformationMessage(`File created: ${newFileUri.path}`);
+        return newFileUri;
+    }
+}
+const myOutputChannel = vscode.window.createOutputChannel('My Output Channel');
+const displayOutput = (output) => {
+    // show output
+    myOutputChannel.appendLine(output);
+    // show output channel
+    myOutputChannel.show();
+};
+// generate prompt
+const prompt = (interfaceOrType, numFixturesRequested, projectLanguage) => 
+// `generate ${numFixturesRequested} test data for each interface or type I provide. Assign the output to a const with unique name and make sure each field has a value: ${interfaceOrType}`
+`Generate ${numFixturesRequested} test data for the type or interface I provide from my ${projectLanguage} project. Here's the definition: ${interfaceOrType} \n\n Please ensure that each field has a value and assign the test data to a const with a unique name with the appropriate type."`;
+const generateFixtures = async (uri) => {
+    const parsedKey = dotenv.config({ path: '/Users/jamilgonzalez/fixtures-generator-poc/.env' });
+    const api_key = parsedKey.parsed?.GPT_API_KEY;
+    // get selected text
+    const editor = vscode.window.activeTextEditor;
+    const selectedText = getSelectedText(editor);
+    if (!selectedText || !['type', 'interface'].some((keyWord) => selectedText.includes(keyWord))) {
+        vscode.window.showErrorMessage('Please select a type or interface');
+        return;
+    }
+    // regex to match interfaces and types
+    const regex = /^(?:(?:export\s+))?(?:interface|type)\s+\w+\s*\{[\s\S]*?\}(?:\s*\n)?$/gm;
+    const delimiter = '#####UNIQUE_DELIMITER#####';
+    const replacedText = selectedText.replace(regex, delimiter);
+    const otherCodeBlocks = replacedText
+        .split(delimiter)
+        .filter((item) => item !== '\n' && item !== '');
+    const interfacesOrTypes = selectedText
+        .match(regex)
+        ?.filter((item) => item !== '\n' && item !== '');
+    // get number of fixtures to generate
+    const window = vscode.window;
+    const numFixturesRequested = await getNumFixturesRequested(window);
+    // make periods in output increase in amount until response is received from backend
+    let i = 0;
+    function startLoadingOutput(active) {
+        if (!active) {
+            return () => { }; // Return an empty function if not active
+        }
+        const intervalId = setInterval(() => {
+            i === 0 ? myOutputChannel.replace('Generating Fixtures') : myOutputChannel.append('.');
+            i++;
+            if (i === 4) {
+                i = 0;
+            }
+        }, 500);
+        return () => {
+            clearInterval(intervalId); // Return a function that clears the interval
+        };
+    }
+    // send request to GPT
+    let content;
+    let filepath;
+    if (numFixturesRequested && api_key) {
+        const stopLoadingOutput = startLoadingOutput(true);
+        content = interfacesOrTypes?.map(async (item) => {
+            const response = await (0, api_1.gptRequest)(prompt(item.concat(`${otherCodeBlocks}}`), numFixturesRequested, 'typescript'), api_key);
+            stopLoadingOutput();
+            return response;
+        });
+    }
+    else {
+        vscode.window.showErrorMessage(`${!numFixturesRequested
+            ? 'Please specify how many fixures you want created.'
+            : !api_key
+                ? 'Please provide api key'
+                : 'Unable to create fixtures.'}`);
+        myOutputChannel.clear();
+        return;
+    }
+    if (content) {
+        const response = await Promise.all(content).then((res) => res.join(''));
+        // create file in current directory
+        filepath = (await createFileInCurrentDirectory(response)) || '';
+        // clear output channel
+        myOutputChannel.clear();
+        // display output
+        displayOutput(`Fixtures generated at ${filepath}`);
+    }
+};
+exports.generateFixtures = generateFixtures;
+
+
+/***/ }),
+/* 60 */
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -4677,8 +4707,8 @@ exports.deactivate = exports.activate = void 0;
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = __webpack_require__(1);
-const GenerateFixtures_1 = __webpack_require__(2);
-const utils_1 = __webpack_require__(59);
+const GenerateFixtures_1 = __webpack_require__(59);
+const utils_1 = __webpack_require__(60);
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 async function activate(context) {
