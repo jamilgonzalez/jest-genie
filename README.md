@@ -28,11 +28,10 @@ Replace `your-api-key-here` with your actual API key. This will allow the extens
 
 1. Run `yarn install` to install dependencies.
 2. Run `yarn start` to compile and run the project in watch mode.
-3. Open another instance of Visual Studio Code and open the project directory.
-4. Press F5 to launch the extension locally.
-5. To generate mock data for a TypeScript type or interface, highlight the type or interface and select "Generate Fixtures GPT" from the context menu.
-6. In the prompt that appears, enter the amount of fixtures you want generated and hit enter.
-7. The extension will generate mock data and write it to a `fixtures.ts` file in your project.
+3. Press F5 to launch the extension locally.
+4. To generate mock data for a TypeScript type or interface, highlight the type or interface and select "Generate Fixtures GPT" from the context menu.
+5. In the prompt that appears, enter the amount of fixtures you want generated and hit enter.
+6. The extension will generate mock data and write it to a `fixtures.ts` file in your project.
 
 ## Example
 
