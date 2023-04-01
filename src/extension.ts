@@ -9,7 +9,7 @@ import { Command } from './commands/utils'
 export async function activate(context: vscode.ExtensionContext) {
   // vscode.commands.executeCommand('setContext', 'Command.GenerateFixtures', true)
 
-  // register command and push to subscriptions
+  // register generate fixtures command and push to subscriptions
   context.subscriptions.push(
     vscode.commands.registerCommand(
       Command.GenerateFixtures,

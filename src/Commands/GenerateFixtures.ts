@@ -2,30 +2,42 @@ const path = require('path')
 import * as vscode from 'vscode'
 import * as dotenv from 'dotenv'
 import { TextEncoder } from 'util'
-import { gptRequest } from '../api/api'
+import { promptGPT } from '../api/api'
 
-const getSelectedText = (editor: vscode.TextEditor | undefined) => {
-  if (!editor) {
-    vscode.window.showErrorMessage('No active text editor found')
+// The module 'vscode' contains the VS Code extensibility API
+const { window } = vscode
+
+const {
+  showErrorMessage,
+  showInformationMessage,
+  createOutputChannel,
+  activeTextEditor,
+  visibleTextEditors,
+} = window
+
+const myOutputChannel = createOutputChannel('GPT Fixtures Generator Output')
+
+const getSelectedText = () => {
+  const activeTextEditor = visibleTextEditors.find(
+    (editor) => editor.document.uri.scheme === 'file',
+  )
+
+  if (!activeTextEditor) {
+    showErrorMessage('No active text editor found')
     return
   }
 
-  const selectedText = editor.document.getText(editor.selection)
+  const selectedText = activeTextEditor.document.getText(activeTextEditor.selection)
 
   if (selectedText.length === 0) {
-    vscode.window.showErrorMessage('No text selected')
+    showErrorMessage('Please select a type or interface.')
     return
   }
-
-  myOutputChannel.appendLine(
-    selectedText.split(' ').length > 1024
-      ? 'Too many words must be below 1024'
-      : `Input length is ${selectedText.split(' ').length} words`,
-  )
   return selectedText
 }
 
-const getNumFixturesRequested = async (window: typeof vscode.window) => {
+// todo: update this function to return error if the sum of the prompt and the selected text is greater than 1024
+const getNumFixturesRequested = async () => {
   const numRequested = await window.showInputBox({
     prompt: 'How many fixtures do you want to generate?',
   })
@@ -33,80 +45,81 @@ const getNumFixturesRequested = async (window: typeof vscode.window) => {
   if (!numRequested) {
     return
   } else if (Number(numRequested) > 7) {
-    vscode.window.showErrorMessage('Please enter a number less than or equal to 5')
+    showErrorMessage('Please enter a number less than or equal to 7')
   } else {
     return numRequested
   }
 }
 
-const getNewFileUri = (filename: string) => {
-  const activeEditor = vscode.window.visibleTextEditors.find(
-    (editor) => editor.document.uri.scheme === 'file',
-  )
-
-  if (!activeEditor) {
-    vscode.window.showErrorMessage('No active editor found.')
+// generates a uri for the new file based on the current file user is in
+const generateUri = (filename: string) => {
+  if (!activeTextEditor) {
+    showErrorMessage('No active editor found.')
     return
   }
 
-  const currentFilePath = activeEditor.document.fileName
-
-  const extension = path.extname(currentFilePath)
-
+  const currentFilePath = activeTextEditor.document.fileName
   const currentFileDirectory = path.dirname(currentFilePath)
+  const newFile = filename.concat(path.extname(currentFilePath))
 
-  return vscode.Uri.file(path.join(currentFileDirectory, filename.concat(extension)))
+  return vscode.Uri.file(path.join(currentFileDirectory, newFile))
 }
 
-async function createFileInCurrentDirectory(content: string) {
-  const newFileUri = getNewFileUri('fixtures')
-
-  console.log(newFileUri)
-
+async function createFileInCurrentDirectory(content: string, filename: vscode.Uri | undefined) {
   const fileData = new TextEncoder().encode(content)
 
-  if (!newFileUri) {
-    vscode.window.showErrorMessage('Could not create file.')
+  if (!filename) {
+    // todo: update to more specific error message
+    showErrorMessage('Could not create file.')
     return
   } else {
-    await vscode.workspace.fs.writeFile(newFileUri, fileData)
-    vscode.window.showInformationMessage(`File created: ${newFileUri.path}`)
-    return newFileUri
+    await vscode.workspace.fs.writeFile(filename, fileData)
+    showInformationMessage(`File created: ${filename.path}`)
+    // clear output channel
+    myOutputChannel.clear()
+    // display output
+    myOutputChannel.appendLine(`Fixtures generated at ${filename.path}`)
+    myOutputChannel.show()
   }
 }
-const myOutputChannel = vscode.window.createOutputChannel('My Output Channel')
 
-const displayOutput = (output: string) => {
-  // show output
-  myOutputChannel.appendLine(output)
-
-  // show output channel
-  myOutputChannel.show()
-}
 // generate prompt
-const prompt = (interfaceOrType: string, numFixturesRequested: string, projectLanguage: string) =>
-  // `generate ${numFixturesRequested} test data for each interface or type I provide. Assign the output to a const with unique name and make sure each field has a value: ${interfaceOrType}`
-  `Generate ${numFixturesRequested} test data for the type or interface I provide from my ${projectLanguage} project. Here's the definition: ${interfaceOrType} \n\n Please ensure that each field has a value and assign the test data to a const with a unique name with the appropriate type."`
+const prompt = (
+  defenition: string,
+  numFixturesRequested: string,
+  projectLanguage: 'typescript' | 'javascript',
+) =>
+  `Generate ${numFixturesRequested} test data for the type or interface I provide from my ${projectLanguage} project. ` +
+  `Here's the definition: \n${defenition} \n\n` +
+  `Please ensure that each field has a value and assign the test data to a const with a unique name and with its type."`
 
-export const generateFixtures = async (uri: vscode.Uri) => {
-  const parsedKey = dotenv.config({ path: '/Users/jamilgonzalez/fixtures-generator-poc/.env' })
-  const api_key = parsedKey.parsed?.GPT_API_KEY
-
-  // get selected text
-  const editor = vscode.window.activeTextEditor
-  const selectedText = getSelectedText(editor)
-
-  if (!selectedText || !['type', 'interface'].some((keyWord) => selectedText.includes(keyWord))) {
-    vscode.window.showErrorMessage('Please select a type or interface')
-    return
+// display loading output
+function startLoadingOutput(active: boolean) {
+  let i = 0
+  if (!active) {
+    return () => {} // Return an empty function if not active
   }
 
+  const intervalId = setInterval(() => {
+    i === 0 ? myOutputChannel.replace('Generating Fixtures') : myOutputChannel.append('.')
+    i++
+    if (i === 4) {
+      i = 0
+    }
+  }, 500)
+
+  return () => {
+    clearInterval(intervalId) // Return a function that clears the interval
+  }
+}
+
+const parseSelectedText = (selectedText: string) => {
   // regex to match interfaces and types
   const regex = /^(?:(?:export\s+))?(?:interface|type)\s+\w+\s*\{[\s\S]*?\}(?:\s*\n)?$/gm
   const delimiter = '#####UNIQUE_DELIMITER#####'
 
-  const replacedText = selectedText.replace(regex, delimiter)
-  const otherCodeBlocks = replacedText
+  const otherCodeBlocks = selectedText
+    .replace(regex, delimiter)
     .split(delimiter)
     .filter((item) => item !== '\n' && item !== '')
 
@@ -114,47 +127,55 @@ export const generateFixtures = async (uri: vscode.Uri) => {
     .match(regex)
     ?.filter((item) => item !== '\n' && item !== '')
 
-  // get number of fixtures to generate
-  const window = vscode.window
-  const numFixturesRequested = await getNumFixturesRequested(window)
+  return [interfacesOrTypes, otherCodeBlocks]
+}
 
-  // make periods in output increase in amount until response is received from backend
-  let i = 0
-  function startLoadingOutput(active: boolean) {
-    if (!active) {
-      return () => {} // Return an empty function if not active
-    }
+// what kind of params would make sense here?
+const generateFixtures = async (uri: vscode.Uri) => {
+  const parsedKey = dotenv.config({ path: '/Users/jamilgonzalez/fixtures-generator-poc/.env' })
+  const api_key = parsedKey.parsed?.GPT_API_KEY || ''
 
-    const intervalId = setInterval(() => {
-      i === 0 ? myOutputChannel.replace('Generating Fixtures') : myOutputChannel.append('.')
-      i++
-      if (i === 4) {
-        i = 0
-      }
-    }, 500)
+  // get selected text
+  const selectedText = getSelectedText()
 
-    return () => {
-      clearInterval(intervalId) // Return a function that clears the interval
-    }
+  // TODO: make this more robust for other languages
+  if (!selectedText || !['type', 'interface'].some((keyWord) => selectedText.includes(keyWord))) {
+    showErrorMessage('Please select a type or interface')
+    return
   }
 
-  // send request to GPT
-  let content
-  let filepath
+  const [interfacesOrTypes, otherCodeBlocks] = parseSelectedText(selectedText)
 
+  // get number of fixtures to generate
+  const numFixturesRequested = await getNumFixturesRequested()
+
+  // send request to GPT
   if (numFixturesRequested && api_key) {
     const stopLoadingOutput = startLoadingOutput(true)
 
-    content = interfacesOrTypes?.map(async (item) => {
-      const response = await gptRequest(
-        prompt(item.concat(`${otherCodeBlocks}}`), numFixturesRequested, 'typescript'),
-        api_key,
-      )
+    const gptResponses = interfacesOrTypes?.map(async (iot) => {
+      const selectedCode = otherCodeBlocks ? iot.concat(`\n\n${otherCodeBlocks}`) : iot
+      const gptPrompt = prompt(selectedCode, numFixturesRequested, 'typescript')
+
+      console.log('gptPrompt', gptPrompt)
+
+      const response = await promptGPT(gptPrompt, api_key)
+
+      console.log('response', response)
       stopLoadingOutput()
       return response
     })
+
+    if (gptResponses) {
+      const gptResponse = await Promise.all(gptResponses).then((res) => res.join(''))
+      await createFileInCurrentDirectory(gptResponse, generateUri('fixtures'))
+    } else {
+      showErrorMessage('Unable to create fixtures.')
+      myOutputChannel.clear()
+      return
+    }
   } else {
-    vscode.window.showErrorMessage(
+    showErrorMessage(
       `${
         !numFixturesRequested
           ? 'Please specify how many fixures you want created.'
@@ -163,20 +184,8 @@ export const generateFixtures = async (uri: vscode.Uri) => {
           : 'Unable to create fixtures.'
       }`,
     )
-    myOutputChannel.clear()
     return
   }
-
-  if (content) {
-    const response = await Promise.all(content).then((res) => res.join(''))
-
-    // create file in current directory
-    filepath = (await createFileInCurrentDirectory(response)) || ''
-
-    // clear output channel
-    myOutputChannel.clear()
-
-    // display output
-    displayOutput(`Fixtures generated at ${filepath}`)
-  }
 }
+
+export { generateFixtures }
