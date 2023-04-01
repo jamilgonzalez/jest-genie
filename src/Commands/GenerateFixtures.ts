@@ -87,7 +87,7 @@ async function createFileInCurrentDirectory(content: string, filename: vscode.Ur
 const prompt = (
   defenition: string,
   numFixturesRequested: string,
-  projectLanguage: 'typescript' | 'javascript',
+  projectLanguage: 'typescript',
 ) =>
   `Generate ${numFixturesRequested} test data for the type or interface I provide from my ${projectLanguage} project. ` +
   `Here's the definition: \n${defenition} \n\n` +
