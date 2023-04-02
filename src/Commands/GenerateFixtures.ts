@@ -86,10 +86,11 @@ async function createFileInCurrentDirectory(content: string, filename: vscode.Ur
 // generate prompt
 const prompt = (
   defenition: string,
+  types: string,
   numFixturesRequested: string,
-  projectLanguage: 'typescript',
+  projectLanguage = 'typescript',
 ) =>
-  `Generate ${numFixturesRequested} test data for the type or interface I provide from my ${projectLanguage} project. ` +
+  `Generate ${numFixturesRequested} test data for ${types} type/interface. I will provide the definition below from my ${projectLanguage} project. ` +
   `Here's the definition: \n${defenition} \n\n` +
   `Please ensure that each field has a value and assign the test data to a const with a unique name and with its type."`
 
@@ -137,31 +138,34 @@ const generateFixtures = async (uri: vscode.Uri) => {
 
   // get selected text
   const selectedText = getSelectedText()
-
+  
   // TODO: make this more robust for other languages
   if (!selectedText || !['type', 'interface'].some((keyWord) => selectedText.includes(keyWord))) {
     showErrorMessage('Please select a type or interface')
     return
   }
-
+  
   const [interfacesOrTypes, otherCodeBlocks] = parseSelectedText(selectedText)
-
+  
   // get number of fixtures to generate
   const numFixturesRequested = await getNumFixturesRequested()
+  const targetType = await window.showInputBox({prompt: 'Which type or interface are we creating fixtures for (comma separated if multiple)?'})
 
+  if (!targetType) {
+    window.showErrorMessage('Please enter a type or interface')
+    return
+  }
   // send request to GPT
   if (numFixturesRequested && api_key) {
     const stopLoadingOutput = startLoadingOutput(true)
-
-    const gptResponses = interfacesOrTypes?.map(async (iot) => {
+    const gptResponses = interfacesOrTypes?.filter(iot => iot.includes(`${targetType} {`)).map(async (iot) => {
       const selectedCode = otherCodeBlocks ? iot.concat(`\n\n${otherCodeBlocks}`) : iot
-      const gptPrompt = prompt(selectedCode, numFixturesRequested, 'typescript')
+      const gptPrompt = prompt(selectedCode, targetType, numFixturesRequested)
 
       console.log('gptPrompt', gptPrompt)
 
       const response = await promptGPT(gptPrompt, api_key)
 
-      console.log('response', response)
       stopLoadingOutput()
       return response
     })

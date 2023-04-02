@@ -12,6 +12,8 @@ export const promptGPT = async (prompt: string, api_key: string) => {
       max_tokens: config.max_tokens,
       n: config.completions,
       stop: config.stop,
+      temperature: config.temperature,
+      top_p: config.topP,
     })
     return response.data.choices[0].text.trim()
   } catch (e) {

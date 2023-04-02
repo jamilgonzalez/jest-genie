@@ -17,9 +17,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.generateFixtures = void 0;
 const path = __webpack_require__(3);
 const vscode = __webpack_require__(1);
-const dotenv = __webpack_require__(4);
-const util_1 = __webpack_require__(6);
-const api_1 = __webpack_require__(7);
+const util_1 = __webpack_require__(4);
+const api_1 = __webpack_require__(5);
+const dotenv = __webpack_require__(56);
 // The module 'vscode' contains the VS Code extensibility API
 const { window } = vscode;
 const { showErrorMessage, showInformationMessage, createOutputChannel, activeTextEditor, visibleTextEditors, } = window;
@@ -81,7 +81,7 @@ async function createFileInCurrentDirectory(content, filename) {
     }
 }
 // generate prompt
-const prompt = (defenition, numFixturesRequested, projectLanguage) => `Generate ${numFixturesRequested} test data for the type or interface I provide from my ${projectLanguage} project. ` +
+const prompt = (defenition, types, numFixturesRequested, projectLanguage = 'typescript') => `Generate ${numFixturesRequested} test data for ${types} type/interface. I will provide the definition below from my ${projectLanguage} project. ` +
     `Here's the definition: \n${defenition} \n\n` +
     `Please ensure that each field has a value and assign the test data to a const with a unique name and with its type."`;
 // display loading output
@@ -128,15 +128,19 @@ const generateFixtures = async (uri) => {
     const [interfacesOrTypes, otherCodeBlocks] = parseSelectedText(selectedText);
     // get number of fixtures to generate
     const numFixturesRequested = await getNumFixturesRequested();
+    const targetType = await window.showInputBox({ prompt: 'Which type or interface are we creating fixtures for (comma separated if multiple)?' });
+    if (!targetType) {
+        window.showErrorMessage('Please enter a type or interface');
+        return;
+    }
     // send request to GPT
     if (numFixturesRequested && api_key) {
         const stopLoadingOutput = startLoadingOutput(true);
-        const gptResponses = interfacesOrTypes?.map(async (iot) => {
+        const gptResponses = interfacesOrTypes?.filter(iot => iot.includes(`${targetType} {`)).map(async (iot) => {
             const selectedCode = otherCodeBlocks ? iot.concat(`\n\n${otherCodeBlocks}`) : iot;
-            const gptPrompt = prompt(selectedCode, numFixturesRequested, 'typescript');
+            const gptPrompt = prompt(selectedCode, targetType, numFixturesRequested);
             console.log('gptPrompt', gptPrompt);
             const response = await (0, api_1.promptGPT)(gptPrompt, api_key);
-            console.log('response', response);
             stopLoadingOutput();
             return response;
         });
@@ -171,139 +175,13 @@ module.exports = require("path");
 
 /***/ }),
 /* 4 */
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
-
-/* @flow */
-/*::
-
-type DotenvParseOptions = {
-  debug?: boolean
-}
-
-// keys and values from src
-type DotenvParseOutput = { [string]: string }
-
-type DotenvConfigOptions = {
-  path?: string, // path to .env file
-  encoding?: string, // encoding of .env file
-  debug?: string // turn on logging for debugging purposes
-}
-
-type DotenvConfigOutput = {
-  parsed?: DotenvParseOutput,
-  error?: Error
-}
-
-*/
-
-const fs = __webpack_require__(5)
-const path = __webpack_require__(3)
-
-function log (message /*: string */) {
-  console.log(`[dotenv][DEBUG] ${message}`)
-}
-
-const NEWLINE = '\n'
-const RE_INI_KEY_VAL = /^\s*([\w.-]+)\s*=\s*(.*)?\s*$/
-const RE_NEWLINES = /\\n/g
-const NEWLINES_MATCH = /\n|\r|\r\n/
-
-// Parses src into an Object
-function parse (src /*: string | Buffer */, options /*: ?DotenvParseOptions */) /*: DotenvParseOutput */ {
-  const debug = Boolean(options && options.debug)
-  const obj = {}
-
-  // convert Buffers before splitting into lines and processing
-  src.toString().split(NEWLINES_MATCH).forEach(function (line, idx) {
-    // matching "KEY' and 'VAL' in 'KEY=VAL'
-    const keyValueArr = line.match(RE_INI_KEY_VAL)
-    // matched?
-    if (keyValueArr != null) {
-      const key = keyValueArr[1]
-      // default undefined or missing values to empty string
-      let val = (keyValueArr[2] || '')
-      const end = val.length - 1
-      const isDoubleQuoted = val[0] === '"' && val[end] === '"'
-      const isSingleQuoted = val[0] === "'" && val[end] === "'"
-
-      // if single or double quoted, remove quotes
-      if (isSingleQuoted || isDoubleQuoted) {
-        val = val.substring(1, end)
-
-        // if double quoted, expand newlines
-        if (isDoubleQuoted) {
-          val = val.replace(RE_NEWLINES, NEWLINE)
-        }
-      } else {
-        // remove surrounding whitespace
-        val = val.trim()
-      }
-
-      obj[key] = val
-    } else if (debug) {
-      log(`did not match key and value when parsing line ${idx + 1}: ${line}`)
-    }
-  })
-
-  return obj
-}
-
-// Populates process.env from .env file
-function config (options /*: ?DotenvConfigOptions */) /*: DotenvConfigOutput */ {
-  let dotenvPath = path.resolve(process.cwd(), '.env')
-  let encoding /*: string */ = 'utf8'
-  let debug = false
-
-  if (options) {
-    if (options.path != null) {
-      dotenvPath = options.path
-    }
-    if (options.encoding != null) {
-      encoding = options.encoding
-    }
-    if (options.debug != null) {
-      debug = true
-    }
-  }
-
-  try {
-    // specifying an encoding returns a string instead of a buffer
-    const parsed = parse(fs.readFileSync(dotenvPath, { encoding }), { debug })
-
-    Object.keys(parsed).forEach(function (key) {
-      if (!Object.prototype.hasOwnProperty.call(process.env, key)) {
-        process.env[key] = parsed[key]
-      } else if (debug) {
-        log(`"${key}" is already defined in \`process.env\` and will not be overwritten`)
-      }
-    })
-
-    return { parsed }
-  } catch (e) {
-    return { error: e }
-  }
-}
-
-module.exports.config = config
-module.exports.parse = parse
-
-
-/***/ }),
-/* 5 */
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("fs");
-
-/***/ }),
-/* 6 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("util");
 
 /***/ }),
-/* 7 */
+/* 5 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -312,8 +190,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.promptGPT = void 0;
 // move to separate file
 const vscode = __webpack_require__(1);
-const openai = __webpack_require__(8);
-const config_1 = __webpack_require__(57);
+const openai = __webpack_require__(6);
+const config_1 = __webpack_require__(55);
 const promptGPT = async (prompt, api_key) => {
     try {
         const openai_client = new openai(api_key);
@@ -323,6 +201,8 @@ const promptGPT = async (prompt, api_key) => {
             max_tokens: config_1.config.max_tokens,
             n: config_1.config.completions,
             stop: config_1.config.stop,
+            temperature: config_1.config.temperature,
+            top_p: config_1.config.topP,
         });
         return response.data.choices[0].text.trim();
     }
@@ -336,14 +216,14 @@ exports.promptGPT = promptGPT;
 
 
 /***/ }),
-/* 8 */
+/* 6 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-const config = __webpack_require__(9);
-const axios = __webpack_require__(10);
+const config = __webpack_require__(7);
+const axios = __webpack_require__(8);
 
 const DEFAULT_ENGINE = "davinci";
 
@@ -449,7 +329,7 @@ module.exports = OpenAI;
 
 
 /***/ }),
-/* 9 */
+/* 7 */
 /***/ ((module) => {
 
 const DEFAULT_ENGINE = 'davinci';
@@ -486,23 +366,23 @@ module.exports = {
 
 
 /***/ }),
-/* 10 */
+/* 8 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-module.exports = __webpack_require__(11);
+module.exports = __webpack_require__(9);
 
 /***/ }),
-/* 11 */
+/* 9 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(12);
-var bind = __webpack_require__(13);
-var Axios = __webpack_require__(14);
-var mergeConfig = __webpack_require__(51);
-var defaults = __webpack_require__(19);
+var utils = __webpack_require__(10);
+var bind = __webpack_require__(11);
+var Axios = __webpack_require__(12);
+var mergeConfig = __webpack_require__(49);
+var defaults = __webpack_require__(17);
 
 /**
  * Create an instance of Axios
@@ -535,18 +415,18 @@ axios.create = function create(instanceConfig) {
 };
 
 // Expose Cancel & CancelToken
-axios.Cancel = __webpack_require__(53);
-axios.CancelToken = __webpack_require__(54);
-axios.isCancel = __webpack_require__(50);
+axios.Cancel = __webpack_require__(51);
+axios.CancelToken = __webpack_require__(52);
+axios.isCancel = __webpack_require__(48);
 
 // Expose all/spread
 axios.all = function all(promises) {
   return Promise.all(promises);
 };
-axios.spread = __webpack_require__(55);
+axios.spread = __webpack_require__(53);
 
 // Expose isAxiosError
-axios.isAxiosError = __webpack_require__(56);
+axios.isAxiosError = __webpack_require__(54);
 
 module.exports = axios;
 
@@ -555,13 +435,13 @@ module.exports["default"] = axios;
 
 
 /***/ }),
-/* 12 */
+/* 10 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var bind = __webpack_require__(13);
+var bind = __webpack_require__(11);
 
 // utils is a library of generic helper functions non-specific to axios
 
@@ -911,7 +791,7 @@ module.exports = {
 
 
 /***/ }),
-/* 13 */
+/* 11 */
 /***/ ((module) => {
 
 "use strict";
@@ -929,18 +809,18 @@ module.exports = function bind(fn, thisArg) {
 
 
 /***/ }),
-/* 14 */
+/* 12 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(12);
-var buildURL = __webpack_require__(15);
-var InterceptorManager = __webpack_require__(16);
-var dispatchRequest = __webpack_require__(17);
-var mergeConfig = __webpack_require__(51);
-var validator = __webpack_require__(52);
+var utils = __webpack_require__(10);
+var buildURL = __webpack_require__(13);
+var InterceptorManager = __webpack_require__(14);
+var dispatchRequest = __webpack_require__(15);
+var mergeConfig = __webpack_require__(49);
+var validator = __webpack_require__(50);
 
 var validators = validator.validators;
 /**
@@ -1084,13 +964,13 @@ module.exports = Axios;
 
 
 /***/ }),
-/* 15 */
+/* 13 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(12);
+var utils = __webpack_require__(10);
 
 function encode(val) {
   return encodeURIComponent(val).
@@ -1161,13 +1041,13 @@ module.exports = function buildURL(url, params, paramsSerializer) {
 
 
 /***/ }),
-/* 16 */
+/* 14 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(12);
+var utils = __webpack_require__(10);
 
 function InterceptorManager() {
   this.handlers = [];
@@ -1222,16 +1102,16 @@ module.exports = InterceptorManager;
 
 
 /***/ }),
-/* 17 */
+/* 15 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(12);
-var transformData = __webpack_require__(18);
-var isCancel = __webpack_require__(50);
-var defaults = __webpack_require__(19);
+var utils = __webpack_require__(10);
+var transformData = __webpack_require__(16);
+var isCancel = __webpack_require__(48);
+var defaults = __webpack_require__(17);
 
 /**
  * Throws a `Cancel` if cancellation has been requested.
@@ -1311,14 +1191,14 @@ module.exports = function dispatchRequest(config) {
 
 
 /***/ }),
-/* 18 */
+/* 16 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(12);
-var defaults = __webpack_require__(19);
+var utils = __webpack_require__(10);
+var defaults = __webpack_require__(17);
 
 /**
  * Transform the data for a request or a response
@@ -1340,15 +1220,15 @@ module.exports = function transformData(data, headers, fns) {
 
 
 /***/ }),
-/* 19 */
+/* 17 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(12);
-var normalizeHeaderName = __webpack_require__(20);
-var enhanceError = __webpack_require__(21);
+var utils = __webpack_require__(10);
+var normalizeHeaderName = __webpack_require__(18);
+var enhanceError = __webpack_require__(19);
 
 var DEFAULT_CONTENT_TYPE = {
   'Content-Type': 'application/x-www-form-urlencoded'
@@ -1364,10 +1244,10 @@ function getDefaultAdapter() {
   var adapter;
   if (typeof XMLHttpRequest !== 'undefined') {
     // For browsers use XHR adapter
-    adapter = __webpack_require__(22);
+    adapter = __webpack_require__(20);
   } else if (typeof process !== 'undefined' && Object.prototype.toString.call(process) === '[object process]') {
     // For node use HTTP adapter
-    adapter = __webpack_require__(31);
+    adapter = __webpack_require__(29);
   }
   return adapter;
 }
@@ -1481,13 +1361,13 @@ module.exports = defaults;
 
 
 /***/ }),
-/* 20 */
+/* 18 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(12);
+var utils = __webpack_require__(10);
 
 module.exports = function normalizeHeaderName(headers, normalizedName) {
   utils.forEach(headers, function processHeader(value, name) {
@@ -1500,7 +1380,7 @@ module.exports = function normalizeHeaderName(headers, normalizedName) {
 
 
 /***/ }),
-/* 21 */
+/* 19 */
 /***/ ((module) => {
 
 "use strict";
@@ -1549,20 +1429,20 @@ module.exports = function enhanceError(error, config, code, request, response) {
 
 
 /***/ }),
-/* 22 */
+/* 20 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(12);
-var settle = __webpack_require__(23);
-var cookies = __webpack_require__(25);
-var buildURL = __webpack_require__(15);
-var buildFullPath = __webpack_require__(26);
-var parseHeaders = __webpack_require__(29);
-var isURLSameOrigin = __webpack_require__(30);
-var createError = __webpack_require__(24);
+var utils = __webpack_require__(10);
+var settle = __webpack_require__(21);
+var cookies = __webpack_require__(23);
+var buildURL = __webpack_require__(13);
+var buildFullPath = __webpack_require__(24);
+var parseHeaders = __webpack_require__(27);
+var isURLSameOrigin = __webpack_require__(28);
+var createError = __webpack_require__(22);
 
 module.exports = function xhrAdapter(config) {
   return new Promise(function dispatchXhrRequest(resolve, reject) {
@@ -1745,13 +1625,13 @@ module.exports = function xhrAdapter(config) {
 
 
 /***/ }),
-/* 23 */
+/* 21 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var createError = __webpack_require__(24);
+var createError = __webpack_require__(22);
 
 /**
  * Resolve or reject a Promise based on response status.
@@ -1777,13 +1657,13 @@ module.exports = function settle(resolve, reject, response) {
 
 
 /***/ }),
-/* 24 */
+/* 22 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var enhanceError = __webpack_require__(21);
+var enhanceError = __webpack_require__(19);
 
 /**
  * Create an Error with the specified message, config, error code, request and response.
@@ -1802,13 +1682,13 @@ module.exports = function createError(message, config, code, request, response) 
 
 
 /***/ }),
-/* 25 */
+/* 23 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(12);
+var utils = __webpack_require__(10);
 
 module.exports = (
   utils.isStandardBrowserEnv() ?
@@ -1862,14 +1742,14 @@ module.exports = (
 
 
 /***/ }),
-/* 26 */
+/* 24 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var isAbsoluteURL = __webpack_require__(27);
-var combineURLs = __webpack_require__(28);
+var isAbsoluteURL = __webpack_require__(25);
+var combineURLs = __webpack_require__(26);
 
 /**
  * Creates a new URL by combining the baseURL with the requestedURL,
@@ -1889,7 +1769,7 @@ module.exports = function buildFullPath(baseURL, requestedURL) {
 
 
 /***/ }),
-/* 27 */
+/* 25 */
 /***/ ((module) => {
 
 "use strict";
@@ -1910,7 +1790,7 @@ module.exports = function isAbsoluteURL(url) {
 
 
 /***/ }),
-/* 28 */
+/* 26 */
 /***/ ((module) => {
 
 "use strict";
@@ -1931,13 +1811,13 @@ module.exports = function combineURLs(baseURL, relativeURL) {
 
 
 /***/ }),
-/* 29 */
+/* 27 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(12);
+var utils = __webpack_require__(10);
 
 // Headers whose duplicates are ignored by node
 // c.f. https://nodejs.org/api/http.html#http_message_headers
@@ -1991,13 +1871,13 @@ module.exports = function parseHeaders(headers) {
 
 
 /***/ }),
-/* 30 */
+/* 28 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(12);
+var utils = __webpack_require__(10);
 
 module.exports = (
   utils.isStandardBrowserEnv() ?
@@ -2066,25 +1946,25 @@ module.exports = (
 
 
 /***/ }),
-/* 31 */
+/* 29 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(12);
-var settle = __webpack_require__(23);
-var buildFullPath = __webpack_require__(26);
-var buildURL = __webpack_require__(15);
-var http = __webpack_require__(32);
-var https = __webpack_require__(33);
-var httpFollow = (__webpack_require__(34).http);
-var httpsFollow = (__webpack_require__(34).https);
-var url = __webpack_require__(35);
-var zlib = __webpack_require__(48);
-var pkg = __webpack_require__(49);
-var createError = __webpack_require__(24);
-var enhanceError = __webpack_require__(21);
+var utils = __webpack_require__(10);
+var settle = __webpack_require__(21);
+var buildFullPath = __webpack_require__(24);
+var buildURL = __webpack_require__(13);
+var http = __webpack_require__(30);
+var https = __webpack_require__(31);
+var httpFollow = (__webpack_require__(32).http);
+var httpsFollow = (__webpack_require__(32).https);
+var url = __webpack_require__(33);
+var zlib = __webpack_require__(46);
+var pkg = __webpack_require__(47);
+var createError = __webpack_require__(22);
+var enhanceError = __webpack_require__(19);
 
 var isHttps = /https:?/;
 
@@ -2404,30 +2284,30 @@ module.exports = function httpAdapter(config) {
 
 
 /***/ }),
-/* 32 */
+/* 30 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("http");
 
 /***/ }),
-/* 33 */
+/* 31 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("https");
 
 /***/ }),
-/* 34 */
+/* 32 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var url = __webpack_require__(35);
+var url = __webpack_require__(33);
 var URL = url.URL;
-var http = __webpack_require__(32);
-var https = __webpack_require__(33);
-var Writable = (__webpack_require__(36).Writable);
-var assert = __webpack_require__(37);
-var debug = __webpack_require__(38);
+var http = __webpack_require__(30);
+var https = __webpack_require__(31);
+var Writable = (__webpack_require__(34).Writable);
+var assert = __webpack_require__(35);
+var debug = __webpack_require__(36);
 
 // Create handlers that pass events from native requests
 var events = ["abort", "aborted", "connect", "error", "socket", "timeout"];
@@ -3045,28 +2925,28 @@ module.exports.wrap = wrap;
 
 
 /***/ }),
-/* 35 */
+/* 33 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("url");
 
 /***/ }),
-/* 36 */
+/* 34 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("stream");
 
 /***/ }),
-/* 37 */
+/* 35 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("assert");
 
 /***/ }),
-/* 38 */
+/* 36 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 var debug;
@@ -3075,7 +2955,7 @@ module.exports = function () {
   if (!debug) {
     try {
       /* eslint global-require: off */
-      debug = __webpack_require__(39)("follow-redirects");
+      debug = __webpack_require__(37)("follow-redirects");
     }
     catch (error) { /* */ }
     if (typeof debug !== "function") {
@@ -3087,7 +2967,7 @@ module.exports = function () {
 
 
 /***/ }),
-/* 39 */
+/* 37 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 /**
@@ -3096,14 +2976,14 @@ module.exports = function () {
  */
 
 if (typeof process === 'undefined' || process.type === 'renderer' || process.browser === true || process.__nwjs) {
-	module.exports = __webpack_require__(40);
+	module.exports = __webpack_require__(38);
 } else {
-	module.exports = __webpack_require__(43);
+	module.exports = __webpack_require__(41);
 }
 
 
 /***/ }),
-/* 40 */
+/* 38 */
 /***/ ((module, exports, __webpack_require__) => {
 
 /* eslint-env browser */
@@ -3360,7 +3240,7 @@ function localstorage() {
 	}
 }
 
-module.exports = __webpack_require__(41)(exports);
+module.exports = __webpack_require__(39)(exports);
 
 const {formatters} = module.exports;
 
@@ -3378,7 +3258,7 @@ formatters.j = function (v) {
 
 
 /***/ }),
-/* 41 */
+/* 39 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 
@@ -3394,7 +3274,7 @@ function setup(env) {
 	createDebug.disable = disable;
 	createDebug.enable = enable;
 	createDebug.enabled = enabled;
-	createDebug.humanize = __webpack_require__(42);
+	createDebug.humanize = __webpack_require__(40);
 	createDebug.destroy = destroy;
 
 	Object.keys(env).forEach(key => {
@@ -3658,7 +3538,7 @@ module.exports = setup;
 
 
 /***/ }),
-/* 42 */
+/* 40 */
 /***/ ((module) => {
 
 /**
@@ -3826,15 +3706,15 @@ function plural(ms, msAbs, n, name) {
 
 
 /***/ }),
-/* 43 */
+/* 41 */
 /***/ ((module, exports, __webpack_require__) => {
 
 /**
  * Module dependencies.
  */
 
-const tty = __webpack_require__(44);
-const util = __webpack_require__(6);
+const tty = __webpack_require__(42);
+const util = __webpack_require__(4);
 
 /**
  * This is the Node.js implementation of `debug()`.
@@ -3860,7 +3740,7 @@ exports.colors = [6, 2, 3, 4, 5, 1];
 try {
 	// Optional dependency (as in, doesn't need to be installed, NOT like optionalDependencies in package.json)
 	// eslint-disable-next-line import/no-extraneous-dependencies
-	const supportsColor = __webpack_require__(45);
+	const supportsColor = __webpack_require__(43);
 
 	if (supportsColor && (supportsColor.stderr || supportsColor).level >= 2) {
 		exports.colors = [
@@ -4068,7 +3948,7 @@ function init(debug) {
 	}
 }
 
-module.exports = __webpack_require__(41)(exports);
+module.exports = __webpack_require__(39)(exports);
 
 const {formatters} = module.exports;
 
@@ -4095,21 +3975,21 @@ formatters.O = function (v) {
 
 
 /***/ }),
-/* 44 */
+/* 42 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("tty");
 
 /***/ }),
-/* 45 */
+/* 43 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
-const os = __webpack_require__(46);
-const tty = __webpack_require__(44);
-const hasFlag = __webpack_require__(47);
+const os = __webpack_require__(44);
+const tty = __webpack_require__(42);
+const hasFlag = __webpack_require__(45);
 
 const {env} = process;
 
@@ -4261,14 +4141,14 @@ module.exports = {
 
 
 /***/ }),
-/* 46 */
+/* 44 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("os");
 
 /***/ }),
-/* 47 */
+/* 45 */
 /***/ ((module) => {
 
 "use strict";
@@ -4283,21 +4163,21 @@ module.exports = (flag, argv = process.argv) => {
 
 
 /***/ }),
-/* 48 */
+/* 46 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("zlib");
 
 /***/ }),
-/* 49 */
+/* 47 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = JSON.parse('{"name":"axios","version":"0.21.4","description":"Promise based HTTP client for the browser and node.js","main":"index.js","scripts":{"test":"grunt test","start":"node ./sandbox/server.js","build":"NODE_ENV=production grunt build","preversion":"npm test","version":"npm run build && grunt version && git add -A dist && git add CHANGELOG.md bower.json package.json","postversion":"git push && git push --tags","examples":"node ./examples/server.js","coveralls":"cat coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js","fix":"eslint --fix lib/**/*.js"},"repository":{"type":"git","url":"https://github.com/axios/axios.git"},"keywords":["xhr","http","ajax","promise","node"],"author":"Matt Zabriskie","license":"MIT","bugs":{"url":"https://github.com/axios/axios/issues"},"homepage":"https://axios-http.com","devDependencies":{"coveralls":"^3.0.0","es6-promise":"^4.2.4","grunt":"^1.3.0","grunt-banner":"^0.6.0","grunt-cli":"^1.2.0","grunt-contrib-clean":"^1.1.0","grunt-contrib-watch":"^1.0.0","grunt-eslint":"^23.0.0","grunt-karma":"^4.0.0","grunt-mocha-test":"^0.13.3","grunt-ts":"^6.0.0-beta.19","grunt-webpack":"^4.0.2","istanbul-instrumenter-loader":"^1.0.0","jasmine-core":"^2.4.1","karma":"^6.3.2","karma-chrome-launcher":"^3.1.0","karma-firefox-launcher":"^2.1.0","karma-jasmine":"^1.1.1","karma-jasmine-ajax":"^0.1.13","karma-safari-launcher":"^1.0.0","karma-sauce-launcher":"^4.3.6","karma-sinon":"^1.0.5","karma-sourcemap-loader":"^0.3.8","karma-webpack":"^4.0.2","load-grunt-tasks":"^3.5.2","minimist":"^1.2.0","mocha":"^8.2.1","sinon":"^4.5.0","terser-webpack-plugin":"^4.2.3","typescript":"^4.0.5","url-search-params":"^0.10.0","webpack":"^4.44.2","webpack-dev-server":"^3.11.0"},"browser":{"./lib/adapters/http.js":"./lib/adapters/xhr.js"},"jsdelivr":"dist/axios.min.js","unpkg":"dist/axios.min.js","typings":"./index.d.ts","dependencies":{"follow-redirects":"^1.14.0"},"bundlesize":[{"path":"./dist/axios.min.js","threshold":"5kB"}]}');
 
 /***/ }),
-/* 50 */
+/* 48 */
 /***/ ((module) => {
 
 "use strict";
@@ -4309,13 +4189,13 @@ module.exports = function isCancel(value) {
 
 
 /***/ }),
-/* 51 */
+/* 49 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var utils = __webpack_require__(12);
+var utils = __webpack_require__(10);
 
 /**
  * Config-specific merge-function which creates a new config-object
@@ -4403,13 +4283,13 @@ module.exports = function mergeConfig(config1, config2) {
 
 
 /***/ }),
-/* 52 */
+/* 50 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var pkg = __webpack_require__(49);
+var pkg = __webpack_require__(47);
 
 var validators = {};
 
@@ -4515,7 +4395,7 @@ module.exports = {
 
 
 /***/ }),
-/* 53 */
+/* 51 */
 /***/ ((module) => {
 
 "use strict";
@@ -4541,13 +4421,13 @@ module.exports = Cancel;
 
 
 /***/ }),
-/* 54 */
+/* 52 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var Cancel = __webpack_require__(53);
+var Cancel = __webpack_require__(51);
 
 /**
  * A `CancelToken` is an object that can be used to request cancellation of an operation.
@@ -4605,7 +4485,7 @@ module.exports = CancelToken;
 
 
 /***/ }),
-/* 55 */
+/* 53 */
 /***/ ((module) => {
 
 "use strict";
@@ -4639,7 +4519,7 @@ module.exports = function spread(callback) {
 
 
 /***/ }),
-/* 56 */
+/* 54 */
 /***/ ((module) => {
 
 "use strict";
@@ -4657,7 +4537,7 @@ module.exports = function isAxiosError(payload) {
 
 
 /***/ }),
-/* 57 */
+/* 55 */
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -4669,8 +4549,137 @@ exports.config = {
     completions: 1,
     max_tokens: 1024,
     stop: '\\n',
+    temperature: 0.25,
+    best_of: 1,
+    topP: .75
 };
 
+
+/***/ }),
+/* 56 */
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+/* @flow */
+/*::
+
+type DotenvParseOptions = {
+  debug?: boolean
+}
+
+// keys and values from src
+type DotenvParseOutput = { [string]: string }
+
+type DotenvConfigOptions = {
+  path?: string, // path to .env file
+  encoding?: string, // encoding of .env file
+  debug?: string // turn on logging for debugging purposes
+}
+
+type DotenvConfigOutput = {
+  parsed?: DotenvParseOutput,
+  error?: Error
+}
+
+*/
+
+const fs = __webpack_require__(57)
+const path = __webpack_require__(3)
+
+function log (message /*: string */) {
+  console.log(`[dotenv][DEBUG] ${message}`)
+}
+
+const NEWLINE = '\n'
+const RE_INI_KEY_VAL = /^\s*([\w.-]+)\s*=\s*(.*)?\s*$/
+const RE_NEWLINES = /\\n/g
+const NEWLINES_MATCH = /\n|\r|\r\n/
+
+// Parses src into an Object
+function parse (src /*: string | Buffer */, options /*: ?DotenvParseOptions */) /*: DotenvParseOutput */ {
+  const debug = Boolean(options && options.debug)
+  const obj = {}
+
+  // convert Buffers before splitting into lines and processing
+  src.toString().split(NEWLINES_MATCH).forEach(function (line, idx) {
+    // matching "KEY' and 'VAL' in 'KEY=VAL'
+    const keyValueArr = line.match(RE_INI_KEY_VAL)
+    // matched?
+    if (keyValueArr != null) {
+      const key = keyValueArr[1]
+      // default undefined or missing values to empty string
+      let val = (keyValueArr[2] || '')
+      const end = val.length - 1
+      const isDoubleQuoted = val[0] === '"' && val[end] === '"'
+      const isSingleQuoted = val[0] === "'" && val[end] === "'"
+
+      // if single or double quoted, remove quotes
+      if (isSingleQuoted || isDoubleQuoted) {
+        val = val.substring(1, end)
+
+        // if double quoted, expand newlines
+        if (isDoubleQuoted) {
+          val = val.replace(RE_NEWLINES, NEWLINE)
+        }
+      } else {
+        // remove surrounding whitespace
+        val = val.trim()
+      }
+
+      obj[key] = val
+    } else if (debug) {
+      log(`did not match key and value when parsing line ${idx + 1}: ${line}`)
+    }
+  })
+
+  return obj
+}
+
+// Populates process.env from .env file
+function config (options /*: ?DotenvConfigOptions */) /*: DotenvConfigOutput */ {
+  let dotenvPath = path.resolve(process.cwd(), '.env')
+  let encoding /*: string */ = 'utf8'
+  let debug = false
+
+  if (options) {
+    if (options.path != null) {
+      dotenvPath = options.path
+    }
+    if (options.encoding != null) {
+      encoding = options.encoding
+    }
+    if (options.debug != null) {
+      debug = true
+    }
+  }
+
+  try {
+    // specifying an encoding returns a string instead of a buffer
+    const parsed = parse(fs.readFileSync(dotenvPath, { encoding }), { debug })
+
+    Object.keys(parsed).forEach(function (key) {
+      if (!Object.prototype.hasOwnProperty.call(process.env, key)) {
+        process.env[key] = parsed[key]
+      } else if (debug) {
+        log(`"${key}" is already defined in \`process.env\` and will not be overwritten`)
+      }
+    })
+
+    return { parsed }
+  } catch (e) {
+    return { error: e }
+  }
+}
+
+module.exports.config = config
+module.exports.parse = parse
+
+
+/***/ }),
+/* 57 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("fs");
 
 /***/ }),
 /* 58 */
@@ -4725,14 +4734,14 @@ exports.deactivate = exports.activate = void 0;
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = __webpack_require__(1);
-const GenerateFixtures_1 = __webpack_require__(2);
+const generateFixtures_1 = __webpack_require__(2);
 const utils_1 = __webpack_require__(58);
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 async function activate(context) {
     // vscode.commands.executeCommand('setContext', 'Command.GenerateFixtures', true)
     // register generate fixtures command and push to subscriptions
-    context.subscriptions.push(vscode.commands.registerCommand(utils_1.Command.GenerateFixtures, async (uri) => await (0, GenerateFixtures_1.generateFixtures)(uri)));
+    context.subscriptions.push(vscode.commands.registerCommand(utils_1.Command.GenerateFixtures, async (uri) => await (0, generateFixtures_1.generateFixtures)(uri)));
     // create tree view
     vscode.window.createTreeView(utils_1.Command.GenerateFixtures, {
         treeDataProvider: myTreeDataProvider,

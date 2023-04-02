@@ -3,4 +3,7 @@ export const config = {
   completions: 1,
   max_tokens: 1024,
   stop: '\\n',
+  temperature: 0.25,
+  best_of: 1,
+  topP: .75
 }
