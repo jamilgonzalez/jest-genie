@@ -1,6 +1,81 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ([
-/* 0 */,
+/* 0 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.deactivate = exports.activate = exports.myOutputChannel = void 0;
+// The module 'vscode' contains the VS Code extensibility API
+// Import the module and reference it with the alias vscode in your code below
+const vscode = __webpack_require__(1);
+const generateTests_1 = __webpack_require__(2);
+const utils_1 = __webpack_require__(56);
+exports.myOutputChannel = vscode.window.createOutputChannel('GPT Test Generator Output');
+// This method is called when your extension is activated
+// Your extension is activated the very first time the command is executed
+async function activate(context) {
+    // Get the stored API key from global state
+    const storedApiKey = context.globalState.get('GPT_API_KEY');
+    // Prompt the user for an API key if one is not stored
+    let api_key;
+    if (storedApiKey) {
+        api_key = storedApiKey;
+    }
+    else {
+        exports.myOutputChannel.appendLine('**********************************************************************************************************\n' +
+            '|                                       Generate Jest Tests w/ GPT                                       |\n' +
+            '**********************************************************************************************************\n' +
+            '- You must have an API key from OpenAI to use this extension.\n' +
+            '- You can get one by visiting https://platform.openai.com/account/api-keys\n');
+        api_key = await vscode.window.showInputBox({
+            prompt: 'Enter your API key: '
+        });
+        // Store the API key in global state
+        if (api_key) {
+            await context.globalState.update('GPT_API_KEY', api_key);
+        }
+    }
+    // register generate tests command and push to subscriptions
+    context.subscriptions.push(vscode.commands.registerCommand(utils_1.Command.GenerateTests, async (uri) => await (0, generateTests_1.generateTests)(uri, context.globalState)));
+    // create tree view
+    vscode.window.createTreeView(utils_1.Command.GenerateTests, {
+        treeDataProvider: myTreeDataProvider,
+    });
+    // register tree view
+    vscode.window.registerTreeDataProvider(utils_1.Command.GenerateTests, myTreeDataProvider);
+}
+exports.activate = activate;
+// tree view
+const myTreeDataProvider = {
+    getChildren: async (element) => {
+        if (!element) {
+            return vscode.workspace.workspaceFolders?.map((folder) => folder.uri) || [];
+        }
+        else {
+            return [];
+        }
+    },
+    getTreeItem: (element) => {
+        return {
+            label: element.fsPath,
+            command: {
+                command: utils_1.Command.GenerateTests,
+                title: 'Generate Tests GPT',
+                arguments: [element],
+            },
+            contextValue: utils_1.Command.GenerateTests,
+        };
+        // TODO: add tree view item to input new API key
+    },
+};
+// This method is called when your extension is deactivated
+function deactivate() { }
+exports.deactivate = deactivate;
+
+
+/***/ }),
 /* 1 */
 /***/ ((module) => {
 
@@ -14,54 +89,46 @@ module.exports = require("vscode");
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.generateFixtures = void 0;
+exports.generateTests = void 0;
 const path = __webpack_require__(3);
 const vscode = __webpack_require__(1);
 const util_1 = __webpack_require__(4);
 const api_1 = __webpack_require__(5);
-const dotenv = __webpack_require__(56);
-// The module 'vscode' contains the VS Code extensibility API
-const { window } = vscode;
-const { showErrorMessage, showInformationMessage, createOutputChannel, activeTextEditor, visibleTextEditors, } = window;
-const myOutputChannel = createOutputChannel('GPT Fixtures Generator Output');
-const getSelectedText = () => {
-    const activeTextEditor = visibleTextEditors.find((editor) => editor.document.uri.scheme === 'file');
+const extension_1 = __webpack_require__(0);
+const charactersPerToken = 4;
+const { showErrorMessage, } = vscode.window;
+const getHighlightedText = () => {
+    const activeTextEditor = vscode.window.activeTextEditor;
     if (!activeTextEditor) {
         showErrorMessage('No active text editor found');
         return;
     }
-    const selectedText = activeTextEditor.document.getText(activeTextEditor.selection);
-    if (selectedText.length === 0) {
-        showErrorMessage('Please select a type or interface.');
+    const highlightedText = activeTextEditor.document.getText(activeTextEditor.selection);
+    console.log(highlightedText);
+    if (highlightedText.length === 0) {
+        showErrorMessage('Please select a function to generate tests for.');
         return;
     }
-    return selectedText;
-};
-// todo: update this function to return error if the sum of the prompt and the selected text is greater than 1024
-const getNumFixturesRequested = async () => {
-    const numRequested = await window.showInputBox({
-        prompt: 'How many fixtures do you want to generate?',
-    });
-    if (!numRequested) {
+    const numberOfTokens = Math.ceil(highlightedText.length / charactersPerToken);
+    if (numberOfTokens > 1024) {
+        showErrorMessage(`Selection is too large (${numberOfTokens} tokens). \nPlease select a smaller function or reduce the size of this one. \nThat shit is huge.`);
         return;
-    }
-    else if (Number(numRequested) > 7) {
-        showErrorMessage('Please enter a number less than or equal to 7');
     }
     else {
-        return numRequested;
+        return highlightedText;
     }
 };
 // generates a uri for the new file based on the current file user is in
-const generateUri = (filename) => {
-    if (!activeTextEditor) {
+const generateUri = () => {
+    if (!vscode.window.activeTextEditor) {
         showErrorMessage('No active editor found.');
         return;
     }
-    const currentFilePath = activeTextEditor.document.fileName;
+    const currentFilePath = vscode.window.activeTextEditor.document.fileName;
+    const componentName = currentFilePath.split('/').find(item => item.includes('.'))?.split('.')[0];
     const currentFileDirectory = path.dirname(currentFilePath);
-    const newFile = filename.concat(path.extname(currentFilePath));
-    return vscode.Uri.file(path.join(currentFileDirectory, newFile));
+    const ext = path.extname(currentFilePath);
+    return vscode.Uri.file(path.join(currentFileDirectory, `/__tests__/${componentName}.test${ext}`));
 };
 async function createFileInCurrentDirectory(content, filename) {
     const fileData = new util_1.TextEncoder().encode(content);
@@ -72,18 +139,13 @@ async function createFileInCurrentDirectory(content, filename) {
     }
     else {
         await vscode.workspace.fs.writeFile(filename, fileData);
-        showInformationMessage(`File created: ${filename.path}`);
-        // clear output channel
-        myOutputChannel.clear();
         // display output
-        myOutputChannel.appendLine(`Fixtures generated at ${filename.path}`);
-        myOutputChannel.show();
+        extension_1.myOutputChannel.appendLine(`Tests generated at ${filename.path}`);
+        extension_1.myOutputChannel.show();
     }
 }
-// generate prompt
-const prompt = (defenition, types, numFixturesRequested, projectLanguage = 'typescript') => `Generate ${numFixturesRequested} test data for ${types} type/interface. I will provide the definition below from my ${projectLanguage} project. ` +
-    `Here's the definition: \n${defenition} \n\n` +
-    `Please ensure that each field has a value and assign the test data to a const with a unique name and with its type."`;
+const prompt = (fixture) => `Generate a React test suite using only Jest testing framework and the React Testing Library for a typescript project that validate all  UI is rendering for the this functional component that I will provide you: \n\n` +
+    `${fixture}`;
 // display loading output
 function startLoadingOutput(active) {
     let i = 0;
@@ -91,7 +153,14 @@ function startLoadingOutput(active) {
         return () => { }; // Return an empty function if not active
     }
     const intervalId = setInterval(() => {
-        i === 0 ? myOutputChannel.replace('Generating Fixtures') : myOutputChannel.append('.');
+        // todo: extract out getting component name into a function
+        if (!vscode.window.activeTextEditor) {
+            showErrorMessage('No active editor found.');
+            return;
+        }
+        const currentFilePath = vscode.window.activeTextEditor.document.fileName;
+        const componentName = currentFilePath.split('/').find(item => item.includes('.'))?.split('.')[0];
+        i === 0 ? extension_1.myOutputChannel.replace(`Generating Tests for ${componentName}`) : extension_1.myOutputChannel.append('.');
         i++;
         if (i === 4) {
             i = 0;
@@ -99,71 +168,50 @@ function startLoadingOutput(active) {
     }, 500);
     return () => {
         clearInterval(intervalId); // Return a function that clears the interval
+        extension_1.myOutputChannel.clear();
     };
 }
-const parseSelectedText = (selectedText) => {
-    // regex to match interfaces and types
-    const regex = /^(?:(?:export\s+))?(?:interface|type)\s+\w+\s*\{[\s\S]*?\}(?:\s*\n)?$/gm;
-    const delimiter = '#####UNIQUE_DELIMITER#####';
-    const otherCodeBlocks = selectedText
-        .replace(regex, delimiter)
-        .split(delimiter)
-        .filter((item) => item !== '\n' && item !== '');
-    const interfacesOrTypes = selectedText
-        .match(regex)
-        ?.filter((item) => item !== '\n' && item !== '');
-    return [interfacesOrTypes, otherCodeBlocks];
-};
 // what kind of params would make sense here?
-const generateFixtures = async (uri) => {
-    const parsedKey = dotenv.config({ path: '/Users/jamilgonzalez/Mock-Data-Generator-GPT/.env' });
-    const api_key = parsedKey.parsed?.GPT_API_KEY || '';
-    // get selected text
-    const selectedText = getSelectedText();
-    // TODO: make this more robust for other languages
-    if (!selectedText || !['type', 'interface'].some((keyWord) => selectedText.includes(keyWord))) {
-        showErrorMessage('Please select a type or interface');
-        return;
-    }
-    const [interfacesOrTypes, otherCodeBlocks] = parseSelectedText(selectedText);
-    // get number of fixtures to generate
-    const numFixturesRequested = await getNumFixturesRequested();
-    const targetType = await window.showInputBox({ prompt: 'Which type or interface are we creating fixtures for (comma separated if multiple)?' });
-    if (!targetType) {
-        window.showErrorMessage('Please enter a type or interface');
+const generateTests = async (uri, globalState) => {
+    let api_key = globalState.get('GPT_API_KEY');
+    let selectedText = getHighlightedText();
+    if (!selectedText) {
+        showErrorMessage('Please select a function to generate tests for.');
         return;
     }
     // send request to GPT
-    if (numFixturesRequested && api_key) {
+    if (api_key) {
         const stopLoadingOutput = startLoadingOutput(true);
-        const gptResponses = interfacesOrTypes?.filter(iot => iot.includes(`${targetType} {`)).map(async (iot) => {
-            const selectedCode = otherCodeBlocks ? iot.concat(`\n\n${otherCodeBlocks}`) : iot;
-            const gptPrompt = prompt(selectedCode, targetType, numFixturesRequested);
-            console.log('gptPrompt', gptPrompt);
-            const response = await (0, api_1.promptGPT)(gptPrompt, api_key);
-            stopLoadingOutput();
-            return response;
-        });
-        if (gptResponses) {
-            const gptResponse = await Promise.all(gptResponses).then((res) => res.join(''));
-            await createFileInCurrentDirectory(gptResponse, generateUri('fixtures'));
+        const gptPrompt = prompt(selectedText);
+        const gptResponse = await (0, api_1.promptGPT)(gptPrompt, api_key);
+        stopLoadingOutput();
+        if (gptResponse) {
+            await createFileInCurrentDirectory(gptResponse, generateUri());
         }
         else {
-            showErrorMessage('Unable to create fixtures.');
-            myOutputChannel.clear();
+            showErrorMessage('Error in GPT response. You may have reached your API limit.');
+            api_key = await vscode.window.showInputBox({
+                prompt: 'Enter new API key: '
+            });
+            // Store the API key in global state
+            if (api_key) {
+                await globalState.update('myApiKey', api_key);
+            }
             return;
         }
     }
     else {
-        showErrorMessage(`${!numFixturesRequested
-            ? 'Please specify how many fixures you want created.'
-            : !api_key
-                ? 'Please provide api key'
-                : 'Unable to create fixtures.'}`);
+        api_key = await vscode.window.showInputBox({
+            prompt: 'Please enter a valid API key: '
+        });
+        // Store the API key in global state
+        if (api_key) {
+            await globalState.update('myApiKey', api_key);
+        }
         return;
     }
 };
-exports.generateFixtures = generateFixtures;
+exports.generateTests = generateTests;
 
 
 /***/ }),
@@ -203,6 +251,7 @@ const promptGPT = async (prompt, api_key) => {
             stop: config_1.config.stop,
             temperature: config_1.config.temperature,
             top_p: config_1.config.topP,
+            frequency_penalty: config_1.config.frequency_penalty
         });
         return response.data.choices[0].text.trim();
     }
@@ -4548,141 +4597,16 @@ exports.config = {
     model_engine: 'text-davinci-002',
     completions: 1,
     max_tokens: 1024,
-    stop: '\\n',
-    temperature: 0.25,
-    best_of: 1,
-    topP: .75
+    stop: "\\n",
+    temperature: 0.15,
+    topP: 0.9,
+    frequency_penalty: 0.5,
+    presence_penalty: 0.5
 };
 
 
 /***/ }),
 /* 56 */
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
-
-/* @flow */
-/*::
-
-type DotenvParseOptions = {
-  debug?: boolean
-}
-
-// keys and values from src
-type DotenvParseOutput = { [string]: string }
-
-type DotenvConfigOptions = {
-  path?: string, // path to .env file
-  encoding?: string, // encoding of .env file
-  debug?: string // turn on logging for debugging purposes
-}
-
-type DotenvConfigOutput = {
-  parsed?: DotenvParseOutput,
-  error?: Error
-}
-
-*/
-
-const fs = __webpack_require__(57)
-const path = __webpack_require__(3)
-
-function log (message /*: string */) {
-  console.log(`[dotenv][DEBUG] ${message}`)
-}
-
-const NEWLINE = '\n'
-const RE_INI_KEY_VAL = /^\s*([\w.-]+)\s*=\s*(.*)?\s*$/
-const RE_NEWLINES = /\\n/g
-const NEWLINES_MATCH = /\n|\r|\r\n/
-
-// Parses src into an Object
-function parse (src /*: string | Buffer */, options /*: ?DotenvParseOptions */) /*: DotenvParseOutput */ {
-  const debug = Boolean(options && options.debug)
-  const obj = {}
-
-  // convert Buffers before splitting into lines and processing
-  src.toString().split(NEWLINES_MATCH).forEach(function (line, idx) {
-    // matching "KEY' and 'VAL' in 'KEY=VAL'
-    const keyValueArr = line.match(RE_INI_KEY_VAL)
-    // matched?
-    if (keyValueArr != null) {
-      const key = keyValueArr[1]
-      // default undefined or missing values to empty string
-      let val = (keyValueArr[2] || '')
-      const end = val.length - 1
-      const isDoubleQuoted = val[0] === '"' && val[end] === '"'
-      const isSingleQuoted = val[0] === "'" && val[end] === "'"
-
-      // if single or double quoted, remove quotes
-      if (isSingleQuoted || isDoubleQuoted) {
-        val = val.substring(1, end)
-
-        // if double quoted, expand newlines
-        if (isDoubleQuoted) {
-          val = val.replace(RE_NEWLINES, NEWLINE)
-        }
-      } else {
-        // remove surrounding whitespace
-        val = val.trim()
-      }
-
-      obj[key] = val
-    } else if (debug) {
-      log(`did not match key and value when parsing line ${idx + 1}: ${line}`)
-    }
-  })
-
-  return obj
-}
-
-// Populates process.env from .env file
-function config (options /*: ?DotenvConfigOptions */) /*: DotenvConfigOutput */ {
-  let dotenvPath = path.resolve(process.cwd(), '.env')
-  let encoding /*: string */ = 'utf8'
-  let debug = false
-
-  if (options) {
-    if (options.path != null) {
-      dotenvPath = options.path
-    }
-    if (options.encoding != null) {
-      encoding = options.encoding
-    }
-    if (options.debug != null) {
-      debug = true
-    }
-  }
-
-  try {
-    // specifying an encoding returns a string instead of a buffer
-    const parsed = parse(fs.readFileSync(dotenvPath, { encoding }), { debug })
-
-    Object.keys(parsed).forEach(function (key) {
-      if (!Object.prototype.hasOwnProperty.call(process.env, key)) {
-        process.env[key] = parsed[key]
-      } else if (debug) {
-        log(`"${key}" is already defined in \`process.env\` and will not be overwritten`)
-      }
-    })
-
-    return { parsed }
-  } catch (e) {
-    return { error: e }
-  }
-}
-
-module.exports.config = config
-module.exports.parse = parse
-
-
-/***/ }),
-/* 57 */
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("fs");
-
-/***/ }),
-/* 58 */
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -4692,6 +4616,7 @@ exports.Command = void 0;
 var Command;
 (function (Command) {
     Command["GenerateFixtures"] = "fixtures-generator-poc.generateFixtures";
+    Command["GenerateTests"] = "tests-generator-poc.generateTests";
 })(Command = exports.Command || (exports.Command = {}));
 
 
@@ -4723,62 +4648,13 @@ var Command;
 /******/ 	}
 /******/ 	
 /************************************************************************/
-var __webpack_exports__ = {};
-// This entry need to be wrapped in an IIFE because it need to be in strict mode.
-(() => {
-"use strict";
-var exports = __webpack_exports__;
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.deactivate = exports.activate = void 0;
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-const vscode = __webpack_require__(1);
-const generateFixtures_1 = __webpack_require__(2);
-const utils_1 = __webpack_require__(58);
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
-async function activate(context) {
-    // vscode.commands.executeCommand('setContext', 'Command.GenerateFixtures', true)
-    // register generate fixtures command and push to subscriptions
-    context.subscriptions.push(vscode.commands.registerCommand(utils_1.Command.GenerateFixtures, async (uri) => await (0, generateFixtures_1.generateFixtures)(uri)));
-    // create tree view
-    vscode.window.createTreeView(utils_1.Command.GenerateFixtures, {
-        treeDataProvider: myTreeDataProvider,
-    });
-    // register tree view
-    vscode.window.registerTreeDataProvider(utils_1.Command.GenerateFixtures, myTreeDataProvider);
-}
-exports.activate = activate;
-// tree view
-const myTreeDataProvider = {
-    getChildren: async (element) => {
-        if (!element) {
-            return vscode.workspace.workspaceFolders?.map((folder) => folder.uri) || [];
-        }
-        else {
-            return [];
-        }
-    },
-    getTreeItem: (element) => {
-        return {
-            label: element.fsPath,
-            command: {
-                command: utils_1.Command.GenerateFixtures,
-                title: 'Generate Fixtures GPT',
-                arguments: [element],
-            },
-            contextValue: utils_1.Command.GenerateFixtures,
-        };
-    },
-};
-// This method is called when your extension is deactivated
-function deactivate() { }
-exports.deactivate = deactivate;
-
-})();
-
-module.exports = __webpack_exports__;
+/******/ 	
+/******/ 	// startup
+/******/ 	// Load entry module and return exports
+/******/ 	// This entry module is referenced by other modules so it can't be inlined
+/******/ 	var __webpack_exports__ = __webpack_require__(0);
+/******/ 	module.exports = __webpack_exports__;
+/******/ 	
 /******/ })()
 ;
 //# sourceMappingURL=extension.js.map

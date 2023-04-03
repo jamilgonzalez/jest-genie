@@ -1,6 +1,6 @@
 {
-  "name": "fixtures-generator-poc",
-  "displayName": "fixtures-generator-poc",
+  "name": "tests-generator-poc",
+  "displayName": "tests-generator-poc",
   "description": "",
   "version": "0.0.1",
   "engines": {
@@ -18,13 +18,13 @@
     "menus": {
       "editor/title": [
         {
-          "command": "fixtures-generator-poc.generateFixtures",
+          "command": "tests-generator-poc.generateTests",
           "group": "navigation"
         }
       ],
       "editor/context": [
         {
-          "command": "fixtures-generator-poc.generateFixtures",
+          "command": "tests-generator-poc.generateTests",
           "when": "resourceLangId == javascript || resourceLangId == typescript || resourceLangId == typescriptreact",
           "group": "navigation"
         }
@@ -32,8 +32,8 @@
     },
     "commands": [
       {
-        "command": "fixtures-generator-poc.generateFixtures",
-        "title": "Generate Fixtures GPT"
+        "command": "tests-generator-poc.generateTests",
+        "title": "Generate Tests GPT"
       }
     ]
   },
