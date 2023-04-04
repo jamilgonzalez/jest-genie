@@ -1,5 +1,3 @@
-# README.md
-
 # Test-Generator-GPT VS Code Plugin
 
 ## What it Does
