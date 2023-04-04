@@ -2,7 +2,7 @@
 
 ## What it Does
 
-Test-Generator-GPT is a tool that uses OpenAI's GPT technology to generate test cases for software programs written in typescript. 
+JestGenie is a tool that uses OpenAI's GPT technology to generate test cases for software programs written in typescript. 
 
 Developers can highlight a function they want to generate a test for, right click and activate the plugin from the menu saving them time and effort.
 
@@ -137,7 +137,7 @@ describe('BaseLinks', () => {
 
 OpenAI's GPT (Generative Pre-trained Transformer) is a powerful tool for generating natural language text. 
 
-## Running Test-Generator-GPT
+## Running JestGenie
 
 ### Package Manager
 
