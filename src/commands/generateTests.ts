@@ -72,9 +72,9 @@ async function createFileInCurrentDirectory(content: string, filename: vscode.Ur
 }
 
 
-const prompt = (fixture: string) =>
-  `Generate a React test suite using only Jest testing framework and the React Testing Library for a typescript project that validate all  UI is rendering for the this functional component that I will provide you: \n\n` +
-  `${fixture}`
+const prompt = (fc: string) =>
+  `Generate a React test suite using only Jest testing framework and the React Testing Library for a typescript project that validates all UI components are rendering for the this functional component with test fixtures included: \n\n` +
+  `${fc}`
 
 // display loading output
 function startLoadingOutput(active: boolean) {
