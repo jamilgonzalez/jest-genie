@@ -73,8 +73,12 @@ async function createFileInCurrentDirectory(content: string, filename: vscode.Ur
 
 
 const prompt = (fc: string) =>
-  `Generate a React test suite using only Jest testing framework and the React Testing Library for a typescript project. Ensure the tests validates all UI components are rendering for the this functional component with test fixtures included: \n\n` +
-  `${fc}`
+  `As an AI language model, your task is to generate a comprehensive test suite for a React functional component using TypeScript. The test suite should utilize the Jest testing framework and the React Testing Library.` +
+  `Focus on ensuring that all UI components are properly rendering and handling user interactions, while also including appropriate test fixtures for different scenarios.\n` +
+  `Please provide the test suite in a well-structured format, easy to understand and integrate into a real-world project. Consider edge cases, error handling, and any other relevant aspects when creating the test suite.\n` +
+  `Here is the functional component for which the test suite needs to be created:\n` +
+  `${fc}\n`+
+  `Remember, the test suite should be compatible with a TypeScript project and make use of Jest and React Testing Library.`
 
 // display loading output
 function startLoadingOutput(active: boolean) {
@@ -121,7 +125,11 @@ const generateTests = async (uri: vscode.Uri, globalState: vscode.Memento) => {
 
       const gptPrompt = prompt(selectedText)
 
+      console.log(gptPrompt)
+
       const gptResponse = await promptGPT(gptPrompt, api_key)
+      
+      console.log(gptResponse)
 
       stopLoadingOutput()
 
