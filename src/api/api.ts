@@ -8,7 +8,6 @@ const promptGPT = async (prompt: string, api_key: string) => {
 	});
 	const openai = new OpenAIApi(configuration);
 	try {
-
 		const response = await openai.createChatCompletion({
 			model: config.model,
 			messages: [{role: 'user', content: prompt}],

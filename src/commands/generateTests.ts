@@ -111,64 +111,51 @@ function startLoadingOutput(active: boolean) {
 }
 
 // what kind of params would make sense here?
-const generateTests = async (uri: vscode.Uri, globalState: vscode.Memento) => {
-  let api_key = globalState.get<string>('GPT_API_KEY')
-  let selectedText = getHighlightedText()
+const generateTests = async (uri: vscode.Uri, globalState: vscode.Memento, api_key: string) => {
+  const selectedText = getHighlightedText()
 
   if (!selectedText) {
     showErrorMessage('Please select a function to generate tests for.')
     return
   }
     
-  // send request to GPT
-  if (api_key) {
-    const stopLoadingOutput = startLoadingOutput(true)
+	const stopLoadingOutput = startLoadingOutput(true)
 
-		const gptPrompt = prompt(selectedText)
+	const gptPrompt = prompt(selectedText)
 
-		const {response, total_usage, error} = await promptGPT(gptPrompt, api_key)
+	const {response, total_usage, error} = await promptGPT(gptPrompt, api_key)
+	
+	stopLoadingOutput()
 		
-		stopLoadingOutput()
+	if (response && total_usage) {
+		// track api cost based on tokens used in jest-genie
+		const date = new Date()
+		const month = date.toLocaleString('en-US', { month: 'long' })
+		const year = date.getFullYear()
+		const key = `SESSION_COST_${month}_${year}`
+
+		let monthApiCost = Number(globalState.get<string>(key)) || 0
+
+		monthApiCost += total_usage * 0.000002
+
+		globalState.update(key, monthApiCost)
+
+		myOutputChannel.appendLine(`jest-genie API Cost for ${month}: $${monthApiCost}\n`)
+		myOutputChannel.show()
 		
-		if (response && total_usage) {
-			// track api cost based on tokens used in jest-genie
-			const date = new Date()
-			const month = date.toLocaleString('en-US', { month: 'long' })
-			const year = date.getFullYear()
-			const key = `SESSION_COST_${month}_${year}`
+		await createFileInCurrentDirectory(response, generateUri())
+	} else {
+		showErrorMessage('Error connecting to GPT: ' + error)
+		// TODO: only run this code if the error is an invalid api key
+		const updated_api_key = await vscode.window.showInputBox({
+			prompt: 'Enter new API key: '
+		});
 
-			let monthApiCost = Number(globalState.get<string>(key)) || 0
-
-			monthApiCost += total_usage * 0.000002
-
-			globalState.update(key, monthApiCost)
-
-			myOutputChannel.appendLine(`jest-genie API Cost for ${month}: $${monthApiCost}\n`)
-			myOutputChannel.show()
-			
-			await createFileInCurrentDirectory(response, generateUri())
-		} else {
-			showErrorMessage('Error connecting to GPT: ' + error)
-			api_key = await vscode.window.showInputBox({
-				prompt: 'Enter new API key: '
-			});
-			// Store the API key in global state
-			if (api_key) {
-				await globalState.update('myApiKey', api_key);
-			}
-			return
+		if (api_key) {
+			await globalState.update('GPT_API_KEY', updated_api_key);
+			showErrorMessage('API key updated. Please try again.')
 		}
-  } else {
-    api_key = await vscode.window.showInputBox({
-      prompt: 'Please enter a valid API key: '
-    });
-    
-    // Store the API key in global state
-    if (api_key) {
-      await globalState.update('myApiKey', api_key);
-    }
-    return
-  }
+	}
 }
 
 export { generateTests }
