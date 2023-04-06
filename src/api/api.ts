@@ -4,7 +4,7 @@ import { config } from './config'
 
 const promptGPT = async (prompt: string, api_key: string) => {
 	const configuration = new Configuration({
-			apiKey: "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",
+			apiKey: api_key
 	});
 	const openai = new OpenAIApi(configuration);
 	try {
