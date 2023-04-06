@@ -5,8 +5,7 @@ import { generateTests } from './commands/generateTests'
 import { Command } from './commands/utils'
 
 export const myOutputChannel = vscode.window.createOutputChannel('GPT Test Generator Output')
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+
 export async function activate(context: vscode.ExtensionContext) {
 // Get the stored API key from global state
 const storedApiKey = context.globalState.get<string>('GPT_API_KEY');
@@ -28,8 +27,6 @@ if (storedApiKey) {
     api_key = await vscode.window.showInputBox({
       prompt: 'Enter your API key: '
     });
-
-    
     // Store the API key in global state
     if (api_key) {
       await context.globalState.update('GPT_API_KEY', api_key);

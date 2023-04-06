@@ -1,5 +1,5 @@
 export const config = {
-  model_engine: 'text-davinci-003',
+  model: 'gpt-3.5-turbo',
   completions: 1,
   max_tokens: 1024,
   stop: "\\n",

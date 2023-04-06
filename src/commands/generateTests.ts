@@ -53,7 +53,7 @@ const generateUri = () => {
 
   const ext = path.extname(currentFilePath)
 
-  return vscode.Uri.file(path.join(currentFileDirectory, `/__tests__/${componentName}.test${ext}`))
+  return vscode.Uri.file(path.join(currentFileDirectory, `/__tests__/${componentName ?? 'index'}.test${ext}`))
 }
 
 async function createFileInCurrentDirectory(content: string, filename: vscode.Uri | undefined) {
@@ -76,6 +76,7 @@ const prompt = (fc: string) =>
   `As an AI language model, your task is to generate a comprehensive test suite for a React functional component using TypeScript. The test suite should utilize the Jest testing framework and the React Testing Library.` +
   `Focus on ensuring that all UI components are properly rendering and handling user interactions, while also including appropriate test fixtures for different scenarios.\n` +
   `Make sure the test suite follows the principles behind tests as documentation, and that it is easy to understand and maintain. Consider edge cases, error handling, and any other relevant aspects when creating the test suite.\n` +
+	`Respond with code only.\n` +
   `Here is the functional component for which the test suite needs to be created:\n` +
   `${fc}\n`+
   `Remember, the test suite should be compatible with a TypeScript project and make use of Jest and React Testing Library.`
@@ -123,31 +124,40 @@ const generateTests = async (uri: vscode.Uri, globalState: vscode.Memento) => {
   if (api_key) {
     const stopLoadingOutput = startLoadingOutput(true)
 
-      const gptPrompt = prompt(selectedText)
+		const gptPrompt = prompt(selectedText)
 
-      console.log(gptPrompt)
+		const {response, total_usage, error} = await promptGPT(gptPrompt, api_key)
+		
+		stopLoadingOutput()
+		
+		if (response && total_usage) {
+			// track api cost based on tokens used in jest-genie
+			const date = new Date()
+			const month = date.toLocaleString('en-US', { month: 'long' })
+			const year = date.getFullYear()
+			const key = `SESSION_COST_${month}_${year}`
 
-      const gptResponse = await promptGPT(gptPrompt, api_key)
-      
-      console.log(gptResponse)
+			let monthApiCost = Number(globalState.get<string>(key)) || 0
 
-      stopLoadingOutput()
+			monthApiCost += total_usage * 0.000002
 
-    if (gptResponse) {
-      await createFileInCurrentDirectory(gptResponse, generateUri())
-    } else {
-      showErrorMessage('Error in GPT response. You may have reached your API limit.')
+			globalState.update(key, monthApiCost)
 
-      api_key = await vscode.window.showInputBox({
-        prompt: 'Enter new API key: '
-      });
-      
-      // Store the API key in global state
-      if (api_key) {
-        await globalState.update('myApiKey', api_key);
-      }
-      return
-    }
+			myOutputChannel.appendLine(`jest-genie API Cost for ${month}: $${monthApiCost}\n`)
+			myOutputChannel.show()
+			
+			await createFileInCurrentDirectory(response, generateUri())
+		} else {
+			showErrorMessage('Error connecting to GPT: ' + error)
+			api_key = await vscode.window.showInputBox({
+				prompt: 'Enter new API key: '
+			});
+			// Store the API key in global state
+			if (api_key) {
+				await globalState.update('myApiKey', api_key);
+			}
+			return
+		}
   } else {
     api_key = await vscode.window.showInputBox({
       prompt: 'Please enter a valid API key: '

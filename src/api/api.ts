@@ -1,28 +1,36 @@
-// move to separate file
-const vscode = require('vscode')
-const openai = require('openai-api')
+import { Configuration, OpenAIApi } from "openai";
 import { config } from './config'
 
-// todo: replace openai with axios and use the openai api directly
-// this will allow us to use the gpt-3.5-turbo model which performs like 
-// davinci but each token is 1/10th the cost
-export const promptGPT = async (prompt: string, api_key: string) => {
-  try {
-    const openai_client = new openai(api_key)
-    const response = await openai_client.complete({
-      engine: config.model_engine,
-      prompt: prompt,
-      max_tokens: config.max_tokens,
-      n: config.completions,
-      stop: config.stop,
-      temperature: config.temperature,
-      top_p: config.topP,
-      frequency_penalty: config.frequency_penalty
-    })
-    return response.data.choices[0].text.trim()
-  } catch (e) {
-    // todo: add logging and update error message to be more descriptive for user
-    vscode.window.showErrorMessage('Error connecting to GPT: ' + e)
-    console.log(e)
-  }
+
+const promptGPT = async (prompt: string, api_key: string) => {
+	const configuration = new Configuration({
+			apiKey: "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",
+	});
+	const openai = new OpenAIApi(configuration);
+	try {
+
+		const response = await openai.createChatCompletion({
+			model: config.model,
+			messages: [{role: 'user', content: prompt}],
+			temperature: config.temperature,
+			top_p: config.topP,
+			n: config.completions,
+			stream: false,
+			stop: config.stop,
+			max_tokens: config.max_tokens,
+			presence_penalty: config.presence_penalty,
+			frequency_penalty: config.frequency_penalty,
+			user: 'jest-genie'
+		});
+				
+		return {
+			response: response.data.choices[0].message?.content.trim(), 
+			total_usage: response.data.usage?.total_tokens
+		}
+	} catch (e) {
+		console.log(e)
+		return { error: e }
+	}
 }
+
+export { promptGPT }
