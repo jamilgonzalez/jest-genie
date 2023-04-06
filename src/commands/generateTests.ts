@@ -111,8 +111,9 @@ function startLoadingOutput(active: boolean) {
 }
 
 // what kind of params would make sense here?
-const generateTests = async (uri: vscode.Uri, globalState: vscode.Memento, api_key: string) => {
+const generateTests = async (uri: vscode.Uri, globalState: vscode.Memento) => {
   const selectedText = getHighlightedText()
+  const api_key = globalState.get<string>('GPT_API_KEY');
 
   if (!selectedText) {
     showErrorMessage('Please select a function to generate tests for.')
@@ -123,7 +124,8 @@ const generateTests = async (uri: vscode.Uri, globalState: vscode.Memento, api_k
 
 	const gptPrompt = prompt(selectedText)
 
-	const {response, total_usage, error} = await promptGPT(gptPrompt, api_key)
+  showErrorMessage(`api_key: ${api_key}`)
+	const {response, total_usage, error} = await promptGPT(gptPrompt, api_key || '')
 	
 	stopLoadingOutput()
 		
@@ -151,9 +153,11 @@ const generateTests = async (uri: vscode.Uri, globalState: vscode.Memento, api_k
 			prompt: 'Enter new API key: '
 		});
 
-		if (api_key) {
+		if (updated_api_key) {
+      showErrorMessage(`updated_api_key: ${updated_api_key}`)
 			await globalState.update('GPT_API_KEY', updated_api_key);
 			showErrorMessage('API key updated. Please try again.')
+      return
 		}
 	}
 }

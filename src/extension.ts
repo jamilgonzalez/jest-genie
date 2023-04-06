@@ -33,7 +33,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       Command.GenerateTests,
-      async (uri: vscode.Uri) => await generateTests(uri, context.globalState, storedApiKey!),
+      async (uri: vscode.Uri) => await generateTests(uri, context.globalState),
     ),
   )
 
