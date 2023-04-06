@@ -24,14 +24,16 @@ if (storedApiKey) {
   '- You can get one by visiting https://platform.openai.com/account/api-keys\n' 
   )
 
-  api_key = await vscode.window.showInputBox({
-    prompt: 'Enter your API key: '
-  });
+  while (!api_key) {
+    api_key = await vscode.window.showInputBox({
+      prompt: 'Enter your API key: '
+    });
 
-  
-  // Store the API key in global state
-  if (api_key) {
-    await context.globalState.update('GPT_API_KEY', api_key);
+    
+    // Store the API key in global state
+    if (api_key) {
+      await context.globalState.update('GPT_API_KEY', api_key);
+    }
   }
 }
 
@@ -71,7 +73,6 @@ const myTreeDataProvider: vscode.TreeDataProvider<vscode.Uri> = {
       },
       contextValue: Command.GenerateTests,
     }
-    // TODO: add tree view item to input new API key
   },
 }
 
