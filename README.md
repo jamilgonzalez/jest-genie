@@ -49,86 +49,42 @@ export const BaseLinks: React.FC<BaseLinkProps> = ({ handleClick, links, selecte
 ### GPT Output
 
 ```tsx
-import { fireEvent, render } from '@testing-library/react'
-import { BaseLinks } from '../BaseLinks'
+import React from 'react'
+import { render, fireEvent } from '@testing-library/react'
+import { BaseLinks, BaseLinkProps } from '../BaseLinks'
 
 describe('BaseLinks', () => {
-  it('renders all UI components for the BaseLinks functional component', () => {
-    const { getByTestId } = render(
-      <BaseLinks
-        links={[]}
-        handleClick={function (e: any): void {
-          throw new Error('Function not implemented.')
-        }}
-        selectedLink={''}
-      />,
-    )
-    expect(getByTestId('base-links')).toBeInTheDocument()
+  const handleClick = jest.fn()
+  const links: string[] = ['Link 1', 'Link 2', 'Link 3']
+  const selectedLink: string = 'Link 2'
+
+  const props: BaseLinkProps = {
+    handleClick,
+    links,
+    selectedLink,
+  }
+
+  it('renders all links', () => {
+    const { getByText } = render(<BaseLinks {...props} />)
+    links.forEach((link) => expect(getByText(link)).toBeInTheDocument())
   })
 
-  it('calls the handleClick function when clicked', () => {
-    const mockHandleClick = jest.fn()
-
-    const { getByTestId } = render(
-      <BaseLinks handleClick={mockHandleClick} links={[]} selectedLink={''} />,
-    )
-
-    fireEvent.click(getByTestId('base-links'))
-
-    expect(mockHandleClick).toHaveBeenCalledTimes(1)
+  it('calls handleClick when a link is clicked', () => {
+    const { getByText } = render(<BaseLinks {...props} />)
+    fireEvent.click(getByText(selectedLink))
+    expect(handleClick).toHaveBeenCalled()
   })
 
-  it('renders the correct number of links', () => {
-    const links = ['Home', 'About', 'Contact']
-
-    const { getAllByTestId } = render(
-      <BaseLinks
-        links={links}
-        handleClick={function (e: any): void {
-          throw new Error('Function not implemented.')
-        }}
-        selectedLink={''}
-      />,
-    )
-
-    expect(getAllByTestId('base-links').length).toEqual(3)
+  it('underlines the selected link', () => {
+    const { getByText } = render(<BaseLinks {...props} />)
+    expect(getByText(selectedLink)).toHaveStyle('text-decoration: underline')
   })
 
-  it('renders the correct link text', () => {
-    const links = ['Home', 'About', 'Contact']
-
-    const { getAllByText } = render(
-      <BaseLinks
-        links={links}
-        handleClick={function (e: any): void {
-          throw new Error('Function not implemented.')
-        }}
-        selectedLink={''}
-      />,
-    )
-
-    expect(getAllByText('Home')).toBeTruthy()
-    expect(getAllByText('About')).toBeTruthy()
-    expect(getAllByText('Contact')).toBeTruthy()
-  })
-
-  it('applies the correct styles when a link is clicked', () => {
-    const mockHandleClick = jest.fn()
-
-    const selectedLink = 'Home'
-
-    const links = ['Home', 'About', 'Contact']
-
-    const { getByText, getAllByText } = render(
-      <BaseLinks handleClick={mockHandleClick} selectedLink={selectedLink} links={links} />,
-    )
-
-    // Assert that the correct style is applied to the clicked link. In this case, we're checking that the `linkClickedStyle` class is applied. You would want to assert that the other styles are *not* applied as well.
-    expect(getByText('Home').classList.contains('linkClickedStyle')).toBeTruthy()
-
-    // Assert that the other links do not have the `linkClickedStyle` class applied.
-    expect(getAllByText('About')[0].classList.contains('linkClickedStyle')).toBeFalsy()
-    expect(getAllByText('Contact')[0].classList.contains('linkClickedStyle')).toBeFalsy()
+  it('does not underline unselected links', () => {
+    const { getByText } = render(<BaseLinks {...props} />)
+    links
+      .filter((link) => link !== selectedLink)
+      .forEach((link) => expect(getByText(link)).not.toHaveStyle('text-decoration: underline'))
   })
 })
 ```
