@@ -1,7 +1,11 @@
 {
-  "name": "tests-generator-poc",
+  "name": "jest-genie",
   "publisher": "jamilgonzalez",
-  "displayName": "tests-generator-poc",
+  "displayName": "Jest Genie",
+  "icon": "./jest-genie.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jamilgonzalez/jest-genie"},
   "description": "",
   "version": "0.0.1",
   "engines": {
@@ -34,7 +38,7 @@
     "commands": [
       {
         "command": "tests-generator-poc.generateTests",
-        "title": "Generate Tests GPT"
+        "title": "Jest Genie: Generate Tests"
       }
     ]
   },

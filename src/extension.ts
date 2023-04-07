@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 import { generateTests } from './commands/generateTests'
 import { Command } from './commands/utils'
 
-export const myOutputChannel = vscode.window.createOutputChannel('GPT Test Generator Output')
+export const myOutputChannel = vscode.window.createOutputChannel('Jest Genie Output')
 
 export async function activate(context: vscode.ExtensionContext) {
 	// Get the stored API key from global state
@@ -60,7 +60,7 @@ const myTreeDataProvider: vscode.TreeDataProvider<vscode.Uri> = {
       label: element.fsPath,
       command: {
         command: Command.GenerateTests,
-        title: 'Generate Tests GPT',
+        title: 'Jest Genie: Generate Tests',
         arguments: [element],
       },
       contextValue: Command.GenerateTests,
