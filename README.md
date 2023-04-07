@@ -1,4 +1,4 @@
-# JestGenie: A TypeScript React Test Generator for VS Code using GPT API
+# JestGenie
 
 ## What it Does
 
