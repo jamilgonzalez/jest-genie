@@ -1,5 +1,3 @@
-# JestGenie
-
 ## What it Does
 
 JestGenie is a tool that uses OpenAI's GPT technology to generate test cases for software programs written in typescript. 
