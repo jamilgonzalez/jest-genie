@@ -4,7 +4,7 @@ export const config = {
   max_tokens: 1024,
   stop: "\\n",
   temperature: 0.25,
-  topP: 0.9,
+  top_p: 0.9,
   frequency_penalty: 0.5,
   presence_penalty: 0.5
 }

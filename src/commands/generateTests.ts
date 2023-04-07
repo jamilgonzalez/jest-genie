@@ -6,32 +6,28 @@ import { myOutputChannel } from '../extension'
 
 const charactersPerToken = 4
 
-const {
-  showErrorMessage,
-} = vscode.window
-
-
 const getHighlightedText = () => {
   const activeTextEditor = vscode.window.activeTextEditor
   if (!activeTextEditor) {
-    showErrorMessage('No active text editor found')
+    vscode.window.showErrorMessage('No active text editor found')
     return
   }
 
   const highlightedText = activeTextEditor.document.getText(activeTextEditor.selection)
 
-  console.log(highlightedText)
-
   if (highlightedText.length === 0) {
-    showErrorMessage('Please select a function to generate tests for.')
+    vscode.window.showErrorMessage('Please select a function to generate tests for.')
     return
   }
 
   const numberOfTokens = Math.ceil(highlightedText.length / charactersPerToken);
 
-
   if (numberOfTokens > 1024) {
-    showErrorMessage(`Selection is too large (${numberOfTokens} tokens). \nPlease select a smaller function or reduce the size of this one. \nThat shit is huge.`)
+    vscode.window.showErrorMessage(
+      `Selection is too large (${numberOfTokens} tokens).\n` +
+      `Please select a smaller function or reduce the size of this one.\n` +
+      `That shit is huge.`
+      )
     return
   } else {
     return highlightedText
@@ -41,7 +37,7 @@ const getHighlightedText = () => {
 // generates a uri for the new file based on the current file user is in
 const generateUri = () => {
   if (!vscode.window.activeTextEditor) {
-    showErrorMessage('No active editor found.')
+    vscode.window.showErrorMessage('No active editor found.')
     return
   }
 
@@ -56,24 +52,25 @@ const generateUri = () => {
   return vscode.Uri.file(path.join(currentFileDirectory, `/__tests__/${componentName ?? 'index'}.test${ext}`))
 }
 
-async function createFileInCurrentDirectory(content: string, filename: vscode.Uri | undefined) {
+const createFileInCurrentDirectory = async (content: string, filename: vscode.Uri | undefined) => {
   const fileData = new TextEncoder().encode(content)
 
   if (!filename) {
     // todo: update to more specific error message
-    showErrorMessage('Could not create file.')
+    vscode.window.showErrorMessage('Could not create file.')
     return
   } else {
     await vscode.workspace.fs.writeFile(filename, fileData)
+    vscode.env.openExternal(filename)
     // display output
     myOutputChannel.appendLine(`Tests generated at ${filename.path}`)
     myOutputChannel.show()
   }
 }
 
-
 const prompt = (fc: string) =>
-  `As an AI language model, your task is to generate a comprehensive test suite for a React functional component using TypeScript. The test suite should utilize the Jest testing framework and the React Testing Library.` +
+  `As an AI language model, your task is to generate a comprehensive test suite for a React functional component using TypeScript.`+
+  `The test suite should utilize the Jest testing framework and the React Testing Library.` +
   `Focus on ensuring that all UI components are properly rendering and handling user interactions, while also including appropriate test fixtures for different scenarios.\n` +
   `Make sure the test suite follows the principles behind tests as documentation, and that it is easy to understand and maintain. Consider edge cases, error handling, and any other relevant aspects when creating the test suite.\n` +
 	`Respond with code only.\n` +
@@ -82,7 +79,7 @@ const prompt = (fc: string) =>
   `Remember, the test suite should be compatible with a TypeScript project and make use of Jest and React Testing Library.`
 
 // display loading output
-function startLoadingOutput(active: boolean) {
+const startLoadingOutput = (active: boolean) => {
   let i = 0
   if (!active) {
     return () => {} // Return an empty function if not active
@@ -91,7 +88,7 @@ function startLoadingOutput(active: boolean) {
   const intervalId = setInterval(() => {
     // todo: extract out getting component name into a function
     if (!vscode.window.activeTextEditor) {
-      showErrorMessage('No active editor found.')
+      vscode.window.showErrorMessage('No active editor found.')
       return
     }
     const currentFilePath = vscode.window.activeTextEditor.document.fileName
@@ -110,13 +107,23 @@ function startLoadingOutput(active: boolean) {
   }
 }
 
+const getApiCost = (globalState: vscode.Memento) => {
+// track api cost based on tokens used in jest-genie
+const date = new Date()
+const month = date.toLocaleString('en-US', { month: 'long' })
+const year = date.getFullYear()
+const key = `SESSION_COST_${month}_${year}`
+
+return { key, cost: Number(globalState.get<string>(key)) || 0, month }
+}
+
 // what kind of params would make sense here?
 const generateTests = async (uri: vscode.Uri, globalState: vscode.Memento) => {
-  const selectedText = getHighlightedText()
   const api_key = globalState.get<string>('GPT_API_KEY');
+  const selectedText = getHighlightedText()
 
   if (!selectedText) {
-    showErrorMessage('Please select a function to generate tests for.')
+    vscode.window.showErrorMessage('Please select a function to generate tests for.')
     return
   }
     
@@ -124,21 +131,13 @@ const generateTests = async (uri: vscode.Uri, globalState: vscode.Memento) => {
 
 	const gptPrompt = prompt(selectedText)
 
-  showErrorMessage(`api_key: ${api_key}`)
 	const {response, total_usage, error} = await promptGPT(gptPrompt, api_key || '')
 	
 	stopLoadingOutput()
 		
 	if (response && total_usage) {
-		// track api cost based on tokens used in jest-genie
-		const date = new Date()
-		const month = date.toLocaleString('en-US', { month: 'long' })
-		const year = date.getFullYear()
-		const key = `SESSION_COST_${month}_${year}`
-
-		let monthApiCost = Number(globalState.get<string>(key)) || 0
-
-		monthApiCost += total_usage * 0.000002
+		const { cost, key, month } = getApiCost(globalState)
+		const monthApiCost = cost + total_usage * 0.000002
 
 		globalState.update(key, monthApiCost)
 
@@ -146,17 +145,17 @@ const generateTests = async (uri: vscode.Uri, globalState: vscode.Memento) => {
 		myOutputChannel.show()
 		
 		await createFileInCurrentDirectory(response, generateUri())
+    
 	} else {
-		showErrorMessage('Error connecting to GPT: ' + error)
+		vscode.window.showErrorMessage('Error connecting to GPT: ' + error)
 		// TODO: only run this code if the error is an invalid api key
 		const updated_api_key = await vscode.window.showInputBox({
 			prompt: 'Enter new API key: '
 		});
 
 		if (updated_api_key) {
-      showErrorMessage(`updated_api_key: ${updated_api_key}`)
 			await globalState.update('GPT_API_KEY', updated_api_key);
-			showErrorMessage('API key updated. Please try again.')
+			vscode.window.showInformationMessage('API key updated. Please try again.')
       return
 		}
 	}

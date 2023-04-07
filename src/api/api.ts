@@ -1,5 +1,5 @@
-import { Configuration, OpenAIApi } from "openai";
 import { config } from './config'
+import { Configuration, OpenAIApi } from "openai";
 
 
 const promptGPT = async (prompt: string, api_key: string) => {
@@ -12,7 +12,7 @@ const promptGPT = async (prompt: string, api_key: string) => {
 			model: config.model,
 			messages: [{role: 'user', content: prompt}],
 			temperature: config.temperature,
-			top_p: config.topP,
+			top_p: config.top_p,
 			n: config.completions,
 			stream: false,
 			stop: config.stop,
