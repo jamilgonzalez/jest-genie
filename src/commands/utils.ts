@@ -1,4 +1,4 @@
 export enum Command {
-  GenerateFixtures = 'fixtures-generator-poc.generateFixtures',
-  GenerateTests = 'tests-generator-poc.generateTests'
+  GenerateFixtures = 'jest-genie.generateFixtures',
+  GenerateTests = 'jest-genie.generateTests',
 }

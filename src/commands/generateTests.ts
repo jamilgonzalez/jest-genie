@@ -15,13 +15,18 @@ const generateUri = () => {
 
   const currentFilePath = vscode.window.activeTextEditor.document.fileName
 
-  const componentName = currentFilePath.split('/').find(item => item.includes('.'))?.split('.')[0]
+  const componentName = currentFilePath
+    .split('/')
+    .find((item) => item.includes('.'))
+    ?.split('.')[0]
 
   const currentFileDirectory = path.dirname(currentFilePath)
 
   const ext = path.extname(currentFilePath)
 
-  return vscode.Uri.file(path.join(currentFileDirectory, `/__tests__/${componentName ?? 'index'}.test${ext}`))
+  return vscode.Uri.file(
+    path.join(currentFileDirectory, `/__tests__/${componentName ?? 'index'}.test${ext}`),
+  )
 }
 
 const createFileInCurrentDirectory = async (content: string, filename: vscode.Uri | undefined) => {
@@ -41,13 +46,13 @@ const createFileInCurrentDirectory = async (content: string, filename: vscode.Ur
 }
 
 const prompt = (fc: string) =>
-  `As an AI language model, your task is to generate a comprehensive test suite for a React functional component using TypeScript.`+
+  `As an AI language model, your task is to generate a comprehensive test suite for a React functional component using TypeScript.` +
   `The test suite should utilize the Jest testing framework and the React Testing Library.` +
   `Focus on ensuring that all UI components are properly rendering and handling user interactions, while also including appropriate test fixtures for different scenarios.\n` +
   `Make sure the test suite follows the principles behind tests as documentation, and that it is easy to understand and maintain. Consider edge cases, error handling, and any other relevant aspects when creating the test suite.\n` +
-	`Respond with code only.\n` +
+  `Respond with code only.\n` +
   `Here is the functional component for which the test suite needs to be created:\n` +
-  `${fc}\n`+
+  `${fc}\n` +
   `Remember, the test suite should be compatible with a TypeScript project and make use of Jest and React Testing Library.`
 
 // display loading output
@@ -64,9 +69,14 @@ const startLoadingOutput = (active: boolean) => {
       return
     }
     const currentFilePath = vscode.window.activeTextEditor.document.fileName
-    const componentName = currentFilePath.split('/').find(item => item.includes('.'))?.split('.')[0]
+    const componentName = currentFilePath
+      .split('/')
+      .find((item) => item.includes('.'))
+      ?.split('.')[0]
 
-    i === 0 ? myOutputChannel.replace(`Generating Tests for ${componentName}`) : myOutputChannel.append('.')
+    i === 0
+      ? myOutputChannel.replace(`Generating Tests for ${componentName}`)
+      : myOutputChannel.append('.')
     i++
     if (i === 4) {
       i = 0
@@ -75,73 +85,79 @@ const startLoadingOutput = (active: boolean) => {
 
   return () => {
     clearInterval(intervalId) // Return a function that clears the interval
-     myOutputChannel.clear()
+    myOutputChannel.clear()
   }
 }
 
 const getApiCost = (globalState: vscode.Memento) => {
-// track api cost based on tokens used in jest-genie
-const date = new Date()
-const month = date.toLocaleString('en-US', { month: 'long' })
-const year = date.getFullYear()
-const key = `SESSION_COST_${month}_${year}`
+  // track api cost based on tokens used in jest-genie
+  const date = new Date()
+  const month = date.toLocaleString('en-US', { month: 'long' })
+  const year = date.getFullYear()
+  const key = `SESSION_COST_${month}_${year}`
 
-return { key, cost: Number(globalState.get<string>(key)) || 0, month }
+  return { key, cost: Number(globalState.get<string>(key)) || 0, month }
 }
 
-const numberOfTokens = (text: string) => Math.ceil(text.length / charactersPerToken);
+const numberOfTokens = (text: string) => Math.ceil(text.length / charactersPerToken)
 
 // what kind of params would make sense here?
 const generateTests = async (uri: vscode.Uri, globalState: vscode.Memento) => {
-  const api_key = globalState.get<string>('GPT_API_KEY');
+  let api_key = globalState.get<string>('GPT_API_KEY')
+
+  // Store the API key in global state
+  if (!api_key) {
+    api_key = await vscode.window.showInputBox({
+      prompt: 'Enter your API key: ',
+    })
+
+    await globalState.update('GPT_API_KEY', api_key)
+  }
+
   const textInFile = vscode.window.activeTextEditor?.document.getText()
-  
+
   if (!textInFile) {
     vscode.window.showErrorMessage('No text selected or found in file.')
     return
   }
-  
-  
+
   if (numberOfTokens(textInFile) > 1024) {
     vscode.window.showErrorMessage(
       `File is too large (${numberOfTokens} tokens).\n` +
-      `Please select a smaller function or reduce the size of this one.\n`
-      )
+        `Please select a smaller function or reduce the size of this one.\n`,
+    )
+    return
+  }
+
+  const stopLoadingOutput = startLoadingOutput(true)
+
+  const { response, total_usage, error } = await promptGPT(prompt(textInFile!), api_key || '')
+
+  stopLoadingOutput()
+
+  if (response && total_usage) {
+    const { cost, key, month } = getApiCost(globalState)
+    const monthApiCost = cost + total_usage * 0.000002
+
+    globalState.update(key, monthApiCost)
+
+    myOutputChannel.appendLine(`jest-genie API Cost for ${month}: $${monthApiCost}\n`)
+    myOutputChannel.show()
+
+    await createFileInCurrentDirectory(response, generateUri())
+  } else {
+    vscode.window.showErrorMessage('Error connecting to GPT: ' + error)
+    // TODO: only run this code if the error is an invalid api key
+    const updated_api_key = await vscode.window.showInputBox({
+      prompt: 'Enter new API key: ',
+    })
+
+    if (updated_api_key) {
+      await globalState.update('GPT_API_KEY', updated_api_key)
+      vscode.window.showInformationMessage('API key updated. Please try again.')
       return
-    } 
-    
-    const gptPrompt = prompt(textInFile!)
-    
-    const stopLoadingOutput = startLoadingOutput(true)
-
-	const {response, total_usage, error} = await promptGPT(gptPrompt, api_key || '')
-	
-	stopLoadingOutput()
-		
-	if (response && total_usage) {
-		const { cost, key, month } = getApiCost(globalState)
-		const monthApiCost = cost + total_usage * 0.000002
-
-		globalState.update(key, monthApiCost)
-
-		myOutputChannel.appendLine(`jest-genie API Cost for ${month}: $${monthApiCost}\n`)
-		myOutputChannel.show()
-		
-		await createFileInCurrentDirectory(response, generateUri())
-    
-	} else {
-		vscode.window.showErrorMessage('Error connecting to GPT: ' + error)
-		// TODO: only run this code if the error is an invalid api key
-		const updated_api_key = await vscode.window.showInputBox({
-			prompt: 'Enter new API key: '
-		});
-
-		if (updated_api_key) {
-			await globalState.update('GPT_API_KEY', updated_api_key);
-			vscode.window.showInformationMessage('API key updated. Please try again.')
-      return
-		}
-	}
+    }
+  }
 }
 
 export { generateTests }

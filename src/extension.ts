@@ -5,31 +5,13 @@ import { Command } from './commands/utils'
 export const myOutputChannel = vscode.window.createOutputChannel('Jest Genie Output')
 
 export async function activate(context: vscode.ExtensionContext) {
-	// Get the stored API key from global state
-	let storedApiKey = context.globalState.get<string>('GPT_API_KEY');
-
-
-	if (!storedApiKey) {
-		myOutputChannel.replace(
-		'**********************************************************************************************************\n' +
-		'|                                       Generate Jest Tests w/ GPT                                       |\n'+
-		'**********************************************************************************************************\n' +
-		'- You must have an API key from OpenAI to use this extension.\n' +
-		'- You can get one by visiting https://platform.openai.com/account/api-keys\n' 
-		)
-
-    storedApiKey = await vscode.window.showInputBox({
-      prompt: 'Enter your API key: '
-    });
-    // Store the API key in global state
-    if (storedApiKey) {
-      await context.globalState.update('GPT_API_KEY', storedApiKey);
-    } else {
-      // deactivate extension if no API key is provided
-      myOutputChannel.appendLine('No API key provided. Deactivating extension.')
-      return deactivate()
-    }
-	}
+  myOutputChannel.replace(
+    '**********************************************************************************************************\n' +
+      '|                                       Generate Jest Tests w/ GPT                                       |\n' +
+      '**********************************************************************************************************\n' +
+      '- You must have an API key from OpenAI to use this extension.\n' +
+      '- You can get one by visiting https://platform.openai.com/account/api-keys\n',
+  )
 
   // register generate tests command and push to subscriptions
   context.subscriptions.push(
@@ -40,12 +22,14 @@ export async function activate(context: vscode.ExtensionContext) {
   )
 
   // create tree view
-  vscode.window.createTreeView(Command.GenerateTests, {
+  const treeView = vscode.window.createTreeView('jest-genie.myTreeView', {
     treeDataProvider: myTreeDataProvider,
   })
 
+  context.subscriptions.push(treeView)
+
   // register tree view
-  vscode.window.registerTreeDataProvider(Command.GenerateTests, myTreeDataProvider)
+  vscode.window.registerTreeDataProvider('jest-genie.myTreeView', myTreeDataProvider)
 }
 
 // tree view
@@ -72,5 +56,5 @@ const myTreeDataProvider: vscode.TreeDataProvider<vscode.Uri> = {
 
 // This method is called when your extension is deactivated
 export function deactivate() {
-  return 
+  return
 }
