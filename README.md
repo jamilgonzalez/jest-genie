@@ -2,7 +2,7 @@
 
 JestGenie is a tool that uses OpenAI's GPT technology to generate test cases for software programs written in typescript. 
 
-Developers can right click a file the want to generate tests for and activate the plugin from the menu saving them time and effort.
+Developers can right click a file they want to generate tests for and activate the plugin from the menu saving them time and effort.
 
 ### Sample FC with Prop Type
 
