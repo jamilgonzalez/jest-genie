@@ -6,34 +6,6 @@ import { myOutputChannel } from '../extension'
 
 const charactersPerToken = 4
 
-const getHighlightedText = () => {
-  const activeTextEditor = vscode.window.activeTextEditor
-  if (!activeTextEditor) {
-    vscode.window.showErrorMessage('No active text editor found')
-    return
-  }
-
-  const highlightedText = activeTextEditor.document.getText(activeTextEditor.selection)
-
-  if (highlightedText.length === 0) {
-    vscode.window.showErrorMessage('Please select a function to generate tests for.')
-    return
-  }
-
-  const numberOfTokens = Math.ceil(highlightedText.length / charactersPerToken);
-
-  if (numberOfTokens > 1024) {
-    vscode.window.showErrorMessage(
-      `Selection is too large (${numberOfTokens} tokens).\n` +
-      `Please select a smaller function or reduce the size of this one.\n` +
-      `That shit is huge.`
-      )
-    return
-  } else {
-    return highlightedText
-  }
-}
-
 // generates a uri for the new file based on the current file user is in
 const generateUri = () => {
   if (!vscode.window.activeTextEditor) {
@@ -117,19 +89,30 @@ const key = `SESSION_COST_${month}_${year}`
 return { key, cost: Number(globalState.get<string>(key)) || 0, month }
 }
 
+const numberOfTokens = (text: string) => Math.ceil(text.length / charactersPerToken);
+
 // what kind of params would make sense here?
 const generateTests = async (uri: vscode.Uri, globalState: vscode.Memento) => {
   const api_key = globalState.get<string>('GPT_API_KEY');
-  const selectedText = getHighlightedText()
-
-  if (!selectedText) {
-    vscode.window.showErrorMessage('Please select a function to generate tests for.')
+  const textInFile = vscode.window.activeTextEditor?.document.getText()
+  
+  if (!textInFile) {
+    vscode.window.showErrorMessage('No text selected or found in file.')
     return
   }
+  
+  
+  if (numberOfTokens(textInFile) > 1024) {
+    vscode.window.showErrorMessage(
+      `File is too large (${numberOfTokens} tokens).\n` +
+      `Please select a smaller function or reduce the size of this one.\n`
+      )
+      return
+    } 
     
-	const stopLoadingOutput = startLoadingOutput(true)
-
-	const gptPrompt = prompt(selectedText)
+    const gptPrompt = prompt(textInFile!)
+    
+    const stopLoadingOutput = startLoadingOutput(true)
 
 	const {response, total_usage, error} = await promptGPT(gptPrompt, api_key || '')
 	
