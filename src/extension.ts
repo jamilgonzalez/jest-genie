@@ -10,7 +10,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 
 	if (!storedApiKey) {
-		myOutputChannel.appendLine(
+		myOutputChannel.replace(
 		'**********************************************************************************************************\n' +
 		'|                                       Generate Jest Tests w/ GPT                                       |\n'+
 		'**********************************************************************************************************\n' +
@@ -18,15 +18,17 @@ export async function activate(context: vscode.ExtensionContext) {
 		'- You can get one by visiting https://platform.openai.com/account/api-keys\n' 
 		)
 
-		while (!storedApiKey) {
-			storedApiKey = await vscode.window.showInputBox({
-				prompt: 'Enter your API key: '
-			});
-			// Store the API key in global state
-			if (storedApiKey) {
-				await context.globalState.update('GPT_API_KEY', storedApiKey);
-			}
-		} 
+    storedApiKey = await vscode.window.showInputBox({
+      prompt: 'Enter your API key: '
+    });
+    // Store the API key in global state
+    if (storedApiKey) {
+      await context.globalState.update('GPT_API_KEY', storedApiKey);
+    } else {
+      // deactivate extension if no API key is provided
+      myOutputChannel.appendLine('No API key provided. Deactivating extension.')
+      return deactivate()
+    }
 	}
 
   // register generate tests command and push to subscriptions
@@ -69,4 +71,6 @@ const myTreeDataProvider: vscode.TreeDataProvider<vscode.Uri> = {
 }
 
 // This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() {
+  return 
+}

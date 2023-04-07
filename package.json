@@ -1,13 +1,13 @@
 {
   "name": "jest-genie",
-  "publisher": "jamilgonzalez",
   "displayName": "Jest Genie",
+  "publisher": "jamilgonzalez",
   "icon": "./jest-genie.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/jamilgonzalez/jest-genie"},
-  "description": "",
-  "version": "0.0.2",
+  "description": "Generates test suites using OpenAI's GPT-3 API",
+  "version": "0.0.1",
   "engines": {
     "vscode": "^1.77.0"
   },
