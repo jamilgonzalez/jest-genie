@@ -46,7 +46,7 @@ export const BaseLinks: React.FC<BaseLinkProps> = ({ handleClick, links, selecte
 }
 ```
 
-### GPT Output
+### jest-genie Output
 
 ```tsx
 import React from 'react'
