@@ -1,111 +1,27 @@
-## What it Does
+## Jest-Genie: Test Suite Generator Using OpenAi's GPT-3.5 Turbo Model
 
-JestGenie is a tool that uses OpenAI's GPT technology to generate test suites for software programs written in typescript. 
+* JestGenie is a tool that uses OpenAI's GPT technology to generate test suites for software programs written in typescript
 
-Developers can right click a file they want to generate tests for and activate the plugin from the menu saving them time and effort.
+* Typescript is especially useful here since it gives GPT types/interfaces to work with which it will use to create more accurate and contextual test suites with minimal editing if any
 
-### Sample FC with Prop Type
+* You can generate tests by right clicking a file and selecting "Jest Genie: Generate Tests" option in the menu
 
-```tsx
-export interface BaseLinkProps {
-  links: string[]
-  handleClick: (e: any) => void
-  selectedLink: string
-}
+## Requirements
 
-export const BaseLinks: React.FC<BaseLinkProps> = ({ handleClick, links, selectedLink }) => {
-  return (
-    <Grid
-      container
-      className={classNames(styles.baseLinkContainer)}
-      spacing={3}
-      justifyContent="center"
-    >
-      {links.map((link: string, i: number) => {
-        const clicked = link.toLowerCase() === selectedLink.toLowerCase()
+* You will need to get an api key from https://platform.openai.com/account/api-keys
 
-        return (
-          <Grid key={i} item alignItems="center">
-            <Link
-              key={i}
-              onClick={(e: any) => handleClick(e)}
-              underline={clicked ? 'always' : 'none'}
-              className={
-                clicked ? classNames(styles.linkClickedStyle) : classNames(styles.defaultLinkStyle)
-              }
-            >
-              {link}
-            </Link>
-          </Grid>
-        )
-      })}
-    </Grid>
-  )
-}
-```
+## Demo
 
-### jest-genie Output
+https://user-images.githubusercontent.com/21287418/230697326-bfdc5906-a805-4506-a2f5-f9d0152128e9.mp4
 
-```tsx
-import React from 'react'
-import { render, fireEvent } from '@testing-library/react'
-import { BaseLinks, BaseLinkProps } from '../BaseLinks'
+## Support
 
-describe('BaseLinks', () => {
-  const handleClick = jest.fn()
-  const links: string[] = ['Link 1', 'Link 2', 'Link 3']
-  const selectedLink: string = 'Link 2'
+If you find my work helpful, please consider supporting me by sending a donation to my Bitcoin address:
 
-  const props: BaseLinkProps = {
-    handleClick,
-    links,
-    selectedLink,
-  }
+![support_via_btc](https://user-images.githubusercontent.com/21287418/230697525-f913f028-3459-4aa8-9911-f10eb27f01c7.jpg)
 
-  it('renders all links', () => {
-    const { getByText } = render(<BaseLinks {...props} />)
-    links.forEach((link) => expect(getByText(link)).toBeInTheDocument())
-  })
+Your contributions will help me continue to create high-quality content and improve my projects. Thank you for your support!
 
-  it('calls handleClick when a link is clicked', () => {
-    const { getByText } = render(<BaseLinks {...props} />)
-    fireEvent.click(getByText(selectedLink))
-    expect(handleClick).toHaveBeenCalled()
-  })
 
-  it('underlines the selected link', () => {
-    const { getByText } = render(<BaseLinks {...props} />)
-    expect(getByText(selectedLink)).toHaveStyle('text-decoration: underline')
-  })
 
-  it('does not underline unselected links', () => {
-    const { getByText } = render(<BaseLinks {...props} />)
-    links
-      .filter((link) => link !== selectedLink)
-      .forEach((link) => expect(getByText(link)).not.toHaveStyle('text-decoration: underline'))
-  })
-})
-```
 
-## OpenAI GPT
-
-OpenAI's GPT (Generative Pre-trained Transformer) is a powerful tool for generating natural language text. 
-
-## Running JestGenie
-
-### Package Manager
-
-The Project uses Yarn. If you have it installed you can skip these instructions. To Install Yarn, follow these steps:
-
-**Installing yarn**
-
-1. Go to the [Yarn installation page](https://classic.yarnpkg.com/en/docs/install/).
-2. Select your operating system from the list of options.
-3. Follow the instructions for your operating system to download and install Yarn.
-
-Once Yarn is installed
-
-1. Run `yarn install` to install all of the project dependencies
-2. Then run `yarn start` to compile the project in watch mode
-3. Hit `F5` and at the top of the vscode you should see a dropdown    
-4. Select “VS Code Extension Development” to run the extension
