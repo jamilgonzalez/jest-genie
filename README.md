@@ -6,11 +6,13 @@
 
 - You can generate tests by right clicking a file and selecting "Jest Genie: Generate Tests" option in the menu
 
-# Note
+### Note:
 
-- Since there are limitations on the amount of tokens GPT-3.5 Turbo can handle some files may be too large to process
+- GPT-3.5 Turbo can only handle 4,096 tokens in a given request (at 4 tokens a word we get ~1,024 words)
 
-- This will become less and less an issue as OpenAI opens up GPT-4 and future models
+- Both input and output tokens count toward this limit so some files may be too large to process
+
+- This will become less of an issue as OpenAI opens up GPT-4 and future models to their api
 
 ## Requirements
 
