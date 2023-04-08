@@ -40,7 +40,7 @@ const createFileInCurrentDirectory = async (content: string, filename: vscode.Ur
     await vscode.workspace.fs.writeFile(filename, fileData)
     vscode.env.openExternal(filename)
     // display output
-    myOutputChannel.appendLine(`Tests generated at ${filename.path}`)
+    myOutputChannel.appendLine(`* Tests generated at ${filename.path}`)
     myOutputChannel.show()
   }
 }
@@ -54,40 +54,6 @@ const prompt = (fc: string) =>
   `Here is the functional component for which the test suite needs to be created:\n` +
   `${fc}\n` +
   `Remember, the test suite should be compatible with a TypeScript project and make use of Jest and React Testing Library.`
-
-// display loading output
-const startLoadingOutput = (active: boolean) => {
-  let i = 0
-  if (!active) {
-    return () => {} // Return an empty function if not active
-  }
-
-  const intervalId = setInterval(() => {
-    // todo: extract out getting component name into a function
-    if (!vscode.window.activeTextEditor) {
-      vscode.window.showErrorMessage('No active editor found.')
-      return
-    }
-    const currentFilePath = vscode.window.activeTextEditor.document.fileName
-    const componentName = currentFilePath
-      .split('/')
-      .find((item) => item.includes('.'))
-      ?.split('.')[0]
-
-    i === 0
-      ? myOutputChannel.replace(`Generating Tests for ${componentName}`)
-      : myOutputChannel.append('.')
-    i++
-    if (i === 4) {
-      i = 0
-    }
-  }, 500)
-
-  return () => {
-    clearInterval(intervalId) // Return a function that clears the interval
-    myOutputChannel.clear()
-  }
-}
 
 const getApiCost = (globalState: vscode.Memento) => {
   // track api cost based on tokens used in jest-genie
@@ -129,35 +95,40 @@ const generateTests = async (uri: vscode.Uri, globalState: vscode.Memento) => {
     return
   }
 
-  const stopLoadingOutput = startLoadingOutput(true)
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: 'Jest Genie: Generating tests...',
+      cancellable: false,
+    },
+    async (progress, token) => {
+      const { response, total_usage, error } = await promptGPT(prompt(textInFile!), api_key || '')
 
-  const { response, total_usage, error } = await promptGPT(prompt(textInFile!), api_key || '')
+      if (response && total_usage) {
+        const { cost, key, month } = getApiCost(globalState)
+        const monthApiCost = cost + total_usage * 0.000002
 
-  stopLoadingOutput()
+        globalState.update(key, monthApiCost)
 
-  if (response && total_usage) {
-    const { cost, key, month } = getApiCost(globalState)
-    const monthApiCost = cost + total_usage * 0.000002
+        myOutputChannel.replace(`Jest Genie:\n* API Cost for ${month}: $${monthApiCost}\n`)
+        myOutputChannel.show()
 
-    globalState.update(key, monthApiCost)
+        await createFileInCurrentDirectory(response, generateUri())
+      } else {
+        vscode.window.showErrorMessage('Error connecting to GPT: ' + error)
+        // TODO: only run this code if the error is an invalid api key
+        const updated_api_key = await vscode.window.showInputBox({
+          prompt: 'Enter new API key: ',
+        })
 
-    myOutputChannel.appendLine(`jest-genie API Cost for ${month}: $${monthApiCost}\n`)
-    myOutputChannel.show()
-
-    await createFileInCurrentDirectory(response, generateUri())
-  } else {
-    vscode.window.showErrorMessage('Error connecting to GPT: ' + error)
-    // TODO: only run this code if the error is an invalid api key
-    const updated_api_key = await vscode.window.showInputBox({
-      prompt: 'Enter new API key: ',
-    })
-
-    if (updated_api_key) {
-      await globalState.update('GPT_API_KEY', updated_api_key)
-      vscode.window.showInformationMessage('API key updated. Please try again.')
-      return
-    }
-  }
+        if (updated_api_key) {
+          await globalState.update('GPT_API_KEY', updated_api_key)
+          vscode.window.showInformationMessage('API key updated. Please try again.')
+          return
+        }
+      }
+    },
+  )
 }
 
 export { generateTests }
