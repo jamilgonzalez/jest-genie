@@ -19,7 +19,7 @@ jobs:
       - name: Build extension
         run: vsce package
       - name: Publish extension
-        uses: vsce publish
+        run: vsce publish
         with:
           token: ${{ secrets.PAT }}
           package_file: '*.vsix'
