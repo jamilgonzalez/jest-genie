@@ -19,4 +19,4 @@ jobs:
       - name: Build extension
         run: vsce package
       - name: Publish extension
-        run: vsce publish --pat ${{ secrets.PAT }}
+        run: vsce publish --pat ${{ secrets.VSCODE_PAT }}
