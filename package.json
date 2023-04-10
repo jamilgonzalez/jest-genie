@@ -8,28 +8,36 @@
     "url": "https://github.com/jamilgonzalez/jest-genie"
   },
   "description": "Generates test suites using OpenAI's GPT-3 API",
-  "version": "0.0.7",
+  "version": "0.1.0",
   "engines": {
     "vscode": "^1.77.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "onView:jest-genie.myTreeView"
-  ],
   "main": "./dist/extension.js",
   "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "id": "jest-genie.myTreeView",
+          "name": "Jest Genie",
+          "description": "Tree view for Jest Genie extension",
+          "treeView": "jest-genie.myTreeViewProvider",
+          "group": "navigation"
+        }
+      ]
+    },
     "menus": {
       "editor/title": [
         {
-          "command": "jest-genie.generateTests",
+          "command": "jest-genie.generateTestSuite",
           "group": "navigation"
         }
       ],
       "editor/context": [
         {
-          "command": "jest-genie.generateTests",
+          "command": "jest-genie.generateTestSuite",
           "when": "resourceLangId == javascript || resourceLangId == typescript || resourceLangId == typescriptreact",
           "group": "navigation"
         }
@@ -37,18 +45,17 @@
     },
     "commands": [
       {
-        "command": "jest-genie.generateTests",
-        "title": "Jest Genie: Generate Tests"
+        "command": "jest-genie.generateTestSuite",
+        "title": "Jest Genie > Generate Test Suite"
       }
     ],
-    "view": {
-      "jest-genie.myTreeView": [
-        {
-          "id": "jest-genie.myTreeView",
-          "name": "Jest Genie"
-        }
-      ]
-    }
+    "keybindings": [
+      {
+        "command": "jest-genie.generateTestSuite",
+        "key": "cmd+shift+j",
+        "when": "editorTextFocus"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "yarn run package",

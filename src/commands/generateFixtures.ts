@@ -2,7 +2,6 @@ const path = require('path')
 import * as vscode from 'vscode'
 import * as dotenv from 'dotenv'
 import { TextEncoder } from 'util'
-import { promptGPT } from '../api/api'
 
 // The module 'vscode' contains the VS Code extensibility API
 const { window } = vscode
@@ -132,68 +131,68 @@ const parseSelectedText = (selectedText: string) => {
 }
 
 // what kind of params would make sense here?
-const generateFixtures = async (uri: vscode.Uri) => {
-  const parsedKey = dotenv.config()
-  const api_key = parsedKey.parsed?.GPT_API_KEY || ''
+// const generateFixtures = async (uri: vscode.Uri) => {
+//   const parsedKey = dotenv.config()
+//   const api_key = parsedKey.parsed?.GPT_API_KEY || ''
 
-  // get selected text
-  const selectedText = getSelectedText()
+//   // get selected text
+//   const selectedText = getSelectedText()
 
-  // TODO: make this more robust for other languages
-  if (!selectedText || !['type', 'interface'].some((keyWord) => selectedText.includes(keyWord))) {
-    showErrorMessage('Please select a type or interface')
-    return
-  }
+//   // TODO: make this more robust for other languages
+//   if (!selectedText || !['type', 'interface'].some((keyWord) => selectedText.includes(keyWord))) {
+//     showErrorMessage('Please select a type or interface')
+//     return
+//   }
 
-  const [interfacesOrTypes, otherCodeBlocks] = parseSelectedText(selectedText)
+//   const [interfacesOrTypes, otherCodeBlocks] = parseSelectedText(selectedText)
 
-  // get number of fixtures to generate
-  const numFixturesRequested = await getNumFixturesRequested()
-  const targetType = await window.showInputBox({
-    prompt: 'Which type or interface are we creating fixtures for (comma separated if multiple)?',
-  })
+//   // get number of fixtures to generate
+//   const numFixturesRequested = await getNumFixturesRequested()
+//   const targetType = await window.showInputBox({
+//     prompt: 'Which type or interface are we creating fixtures for (comma separated if multiple)?',
+//   })
 
-  if (!targetType) {
-    window.showErrorMessage('Please enter a type or interface')
-    return
-  }
-  // send request to GPT
-  if (numFixturesRequested && api_key) {
-    const stopLoadingOutput = startLoadingOutput(true)
-    const gptResponses = interfacesOrTypes
-      ?.filter((iot) => iot.includes(`${targetType} {`))
-      .map(async (iot) => {
-        const selectedCode = otherCodeBlocks ? iot.concat(`\n\n${otherCodeBlocks}`) : iot
-        const gptPrompt = prompt(selectedCode, targetType, numFixturesRequested)
+//   if (!targetType) {
+//     window.showErrorMessage('Please enter a type or interface')
+//     return
+//   }
+//   // send request to GPT
+//   if (numFixturesRequested && api_key) {
+//     const stopLoadingOutput = startLoadingOutput(true)
+//     const gptResponses = interfacesOrTypes
+//       ?.filter((iot) => iot.includes(`${targetType} {`))
+//       .map(async (iot) => {
+//         const selectedCode = otherCodeBlocks ? iot.concat(`\n\n${otherCodeBlocks}`) : iot
+//         const gptPrompt = prompt(selectedCode, targetType, numFixturesRequested)
 
-        console.log('gptPrompt', gptPrompt)
+//         console.log('gptPrompt', gptPrompt)
 
-        const response = await promptGPT(gptPrompt, api_key)
+//         const response = await promptGPT(gptPrompt, api_key)
 
-        stopLoadingOutput()
-        return response
-      })
+//         stopLoadingOutput()
+//         return response
+//       })
 
-    if (gptResponses) {
-      const gptResponse = await Promise.all(gptResponses).then((res) => res.join(''))
-      await createFileInCurrentDirectory(gptResponse, generateUri('fixtures'))
-    } else {
-      showErrorMessage('Unable to create fixtures.')
-      myOutputChannel.clear()
-      return
-    }
-  } else {
-    showErrorMessage(
-      `${
-        !numFixturesRequested
-          ? 'Please specify how many fixures you want created.'
-          : !api_key
-          ? 'Please provide api key'
-          : 'Unable to create fixtures.'
-      }`,
-    )
-    return
-  }
-}
+//     if (gptResponses) {
+//       const gptResponse = await Promise.all(gptResponses).then((res) => res.join(''))
+//       await createFileInCurrentDirectory(gptResponse, generateUri('fixtures'))
+//     } else {
+//       showErrorMessage('Unable to create fixtures.')
+//       myOutputChannel.clear()
+//       return
+//     }
+//   } else {
+//     showErrorMessage(
+//       `${
+//         !numFixturesRequested
+//           ? 'Please specify how many fixures you want created.'
+//           : !api_key
+//           ? 'Please provide api key'
+//           : 'Unable to create fixtures.'
+//       }`,
+//     )
+//     return
+//   }
+// }
 
-export { generateFixtures }
+// export { generateFixtures }

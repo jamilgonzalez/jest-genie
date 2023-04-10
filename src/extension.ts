@@ -1,39 +1,11 @@
 import * as vscode from 'vscode'
-import { generateTests } from './commands/generateTests'
+import { GenerateTestSuite } from './commands/generateTestSuite'
 import { Command } from './commands/utils'
+import { openAiInteractor } from './api'
 
-export const myOutputChannel = vscode.window.createOutputChannel('Jest Genie Output')
+const treeViewId = 'jest-genie.myTreeView'
 
-export async function activate(context: vscode.ExtensionContext) {
-  myOutputChannel.replace(
-    '**********************************************************************************************************\n' +
-      '|                                       Generate Jest Tests w/ GPT                                       |\n' +
-      '**********************************************************************************************************\n' +
-      '- You must have an API key from OpenAI to use this extension.\n' +
-      '- You can get one by visiting https://platform.openai.com/account/api-keys\n',
-  )
-
-  // register generate tests command and push to subscriptions
-  context.subscriptions.push(
-    vscode.commands.registerCommand(
-      Command.GenerateTests,
-      async (uri: vscode.Uri) => await generateTests(uri, context.globalState),
-    ),
-  )
-
-  // create tree view
-  const treeView = vscode.window.createTreeView('jest-genie.myTreeView', {
-    treeDataProvider: myTreeDataProvider,
-  })
-
-  context.subscriptions.push(treeView)
-
-  // register tree view
-  vscode.window.registerTreeDataProvider('jest-genie.myTreeView', myTreeDataProvider)
-}
-
-// tree view
-const myTreeDataProvider: vscode.TreeDataProvider<vscode.Uri> = {
+const treeDataProvider: vscode.TreeDataProvider<vscode.Uri> = {
   getChildren: async (element?: vscode.Uri): Promise<vscode.Uri[]> => {
     if (!element) {
       return vscode.workspace.workspaceFolders?.map((folder) => folder.uri) || []
@@ -45,15 +17,28 @@ const myTreeDataProvider: vscode.TreeDataProvider<vscode.Uri> = {
     return {
       label: element.fsPath,
       command: {
-        command: Command.GenerateTests,
-        title: 'Jest Genie: Generate Tests',
+        command: Command.GenerateTestSuite,
+        title: 'Jest Genie: Generate Test Suite',
         arguments: [element],
       },
-      contextValue: Command.GenerateTests,
+      contextValue: Command.GenerateTestSuite,
     }
   },
 }
 
+export async function activate(context: vscode.ExtensionContext) {
+  const generateTestSuiteCommand = new GenerateTestSuite(
+    context,
+    openAiInteractor,
+    Command.GenerateTestSuite,
+  )
+  // todo: create tree view class and move this code there
+  vscode.window.createTreeView(treeViewId, { treeDataProvider })
+
+  // registering is a good practice to ensure proper cleanup and prevent memory leaks in the extension
+  context.subscriptions.push(generateTestSuiteCommand.register())
+  context.subscriptions.push(vscode.window.registerTreeDataProvider(treeViewId, treeDataProvider))
+}
 // This method is called when your extension is deactivated
 export function deactivate() {
   return

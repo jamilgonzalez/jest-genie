@@ -1,4 +1,8 @@
+import * as vscode from 'vscode'
+
 export enum Command {
   GenerateFixtures = 'jest-genie.generateFixtures',
-  GenerateTests = 'jest-genie.generateTests',
+  GenerateTestSuite = 'jest-genie.generateTestSuite',
 }
+
+export const outputChannel = vscode.window.createOutputChannel('Jest Genie Output')
