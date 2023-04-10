@@ -19,7 +19,7 @@ jobs:
       - name: Build extension
         run: vsce package
       - name: Publish extension
-        uses: c-hive/gha-npm-publish@v1.0.3
+        uses: vsce publish
         with:
           token: ${{ secrets.PAT }}
           package_file: '*.vsix'
