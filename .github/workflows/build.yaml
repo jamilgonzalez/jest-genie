@@ -14,11 +14,12 @@ jobs:
         uses: actions/setup-node@v2.4.0
         with:
           node-version: 19
-      - name: Install vsce
-        run: yarn global add @vscode/vsce
       - name: Install dependencies
-        run: yarn install
+        run: yarn global add @vscode/vsce && yarn install
       - name: Build extension
         run: vsce package
       - name: Publish extension
         run: vsce publish
+        with:
+          token: ${{ secrets.VSCODE_PAT }}
+          package_file: '*.vsix'
