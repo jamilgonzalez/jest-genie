@@ -9,6 +9,7 @@ export class GenerateTestSuite implements VscodeCommand {
   private context: vscode.ExtensionContext
   private openAiInteractor: OpenAI
   private commandId: string
+  private charactersPerToken = 4
 
   constructor(context: vscode.ExtensionContext, openAiInteractor: OpenAI, commandId: string) {
     this.context = context
@@ -16,7 +17,6 @@ export class GenerateTestSuite implements VscodeCommand {
     this.commandId = commandId
   }
 
-  private charactersPerToken = 4
   // generates a uri for the new file based on the current file user is in
   private generateUri = () => {
     if (!vscode.window.activeTextEditor) {
