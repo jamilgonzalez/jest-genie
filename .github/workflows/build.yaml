@@ -1,0 +1,25 @@
+name: Build and Publish Extension
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v2.4.0
+        with:
+          node-version: 14
+      - name: Install dependencies
+        run: yarn install
+      - name: Build extension
+        run: vsce package
+      - name: Publish extension
+        uses: c-hive/gha-npm-publish@v1.0.3
+        with:
+          token: ${{ secrets.PAT }}
+          package_file: '*.vsix'
