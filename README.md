@@ -18,6 +18,14 @@
 
 - You will need to get an api key from https://platform.openai.com/account/api-keys
 
+## How to Run in Debug Mode
+
+1. Run `yarn install` to install all of the project dependencies
+2. Then run `yarn start` to compile the project in watch mode
+3. Hit `F5` or click the debugger in the menu and run in debug mode (with no configuration)
+4. Press `CMD+Shift+P` (in the newly opened VSCode window)
+5. Type JestGenie to get the list of commands to run for the extension
+
 ## Demo
 
 https://user-images.githubusercontent.com/21287418/230697326-bfdc5906-a805-4506-a2f5-f9d0152128e9.mp4
