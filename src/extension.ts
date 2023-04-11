@@ -1,53 +1,28 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode'
-import { generateFixtures } from './commands/generateFixtures'
+import { GenerateTestSuite } from './commands/generateTestSuite'
 import { Command } from './commands/utils'
+import { openAiInteractor } from './api'
+import RemoveApiKey from './commands/removeApiKey'
+import UpdateApiKey from './commands/updateApiKey'
+import TreeView from './views/treeView'
 
-
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
-  // vscode.commands.executeCommand('setContext', 'Command.GenerateFixtures', true)
-
-  // register generate fixtures command and push to subscriptions
-  context.subscriptions.push(
-    vscode.commands.registerCommand(
-      Command.GenerateFixtures,
-      async (uri: vscode.Uri) => await generateFixtures(uri),
-    ),
+  const generateTestSuiteCommand = new GenerateTestSuite(
+    context,
+    openAiInteractor,
+    Command.GenerateTestSuite,
   )
+  const removeApiKeyCommand = new RemoveApiKey(context, Command.RemoveApiKey)
+  const updateApiKeyCommand = new UpdateApiKey(context, Command.UpdateApiKey)
+  const treeView = new TreeView('jest-genie.myTreeView')
 
-  // create tree view
-  vscode.window.createTreeView(Command.GenerateFixtures, {
-    treeDataProvider: myTreeDataProvider,
-  })
-
-  // register tree view
-  vscode.window.registerTreeDataProvider(Command.GenerateFixtures, myTreeDataProvider)
+  // registering is a good practice to ensure proper cleanup and prevent memory leaks in the extension
+  context.subscriptions.push(generateTestSuiteCommand.register())
+  context.subscriptions.push(removeApiKeyCommand.register())
+  context.subscriptions.push(updateApiKeyCommand.register())
+  context.subscriptions.push(treeView.register())
 }
-
-// tree view
-const myTreeDataProvider: vscode.TreeDataProvider<vscode.Uri> = {
-  getChildren: async (element?: vscode.Uri): Promise<vscode.Uri[]> => {
-    if (!element) {
-      return vscode.workspace.workspaceFolders?.map((folder) => folder.uri) || []
-    } else {
-      return []
-    }
-  },
-  getTreeItem: (element: vscode.Uri) => {
-    return {
-      label: element.fsPath,
-      command: {
-        command: Command.GenerateFixtures,
-        title: 'Generate Fixtures GPT',
-        arguments: [element],
-      },
-      contextValue: Command.GenerateFixtures,
-    }
-  },
-}
-
 // This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() {
+  return
+}

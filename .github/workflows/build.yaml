@@ -1,0 +1,22 @@
+name: Build and Publish Extension
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v2.4.0
+        with:
+          node-version: 19
+      - name: Install dependencies
+        run: yarn global add @vscode/vsce && yarn install
+      - name: Build extension
+        run: vsce package
+      - name: Publish extension
+        run: vsce publish --pat ${{ secrets.VSCODE_PAT }}

@@ -1,39 +1,85 @@
 {
-  "name": "fixtures-generator-poc",
-  "displayName": "fixtures-generator-poc",
-  "description": "",
-  "version": "0.0.1",
+  "name": "jest-genie",
+  "displayName": "Jest Genie",
+  "publisher": "jamilgonzalez",
+  "icon": "./jest-genie.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jamilgonzalez/jest-genie"
+  },
+  "description": "Generates test suites using OpenAI's GPT-3 API",
+  "version": "0.1.2",
   "engines": {
-    "vscode": "^1.76.0"
+    "vscode": "^1.77.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "onCommand:myExtensionExplorer",
-    "onView:myExtensionExplorer"
-  ],
   "main": "./dist/extension.js",
   "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "id": "jest-genie.myTreeView",
+          "name": "Jest Genie",
+          "description": "Tree view for Jest Genie extension",
+          "treeView": "jest-genie.myTreeViewProvider",
+          "group": "navigation"
+        }
+      ]
+    },
     "menus": {
       "editor/title": [
         {
-          "command": "fixtures-generator-poc.generateFixtures",
+          "command": "jest-genie.generateTestSuite",
           "group": "navigation"
+        },
+        {
+          "command": "jest-genie.removeApiKey",
+          "title": "Jest Genie: Remove API Key"
+        },
+        {
+          "command": "jest-genie.updateApiKey",
+          "title": "Jest Genie: Update API Key"
         }
       ],
       "editor/context": [
         {
-          "command": "fixtures-generator-poc.generateFixtures",
+          "command": "jest-genie.generateTestSuite",
           "when": "resourceLangId == javascript || resourceLangId == typescript || resourceLangId == typescriptreact",
+          "group": "navigation"
+        },
+        {
+          "command": "jest-genie.removeApiKey",
+          "title": "Jest Genie: Remove API Key",
+          "group": "navigation"
+        },
+        {
+          "command": "jest-genie.updateApiKey",
+          "title": "Jest Genie: Update API Key",
           "group": "navigation"
         }
       ]
     },
     "commands": [
       {
-        "command": "fixtures-generator-poc.generateFixtures",
-        "title": "Generate Fixtures GPT"
+        "command": "jest-genie.generateTestSuite",
+        "title": "Jest Genie: Generate Test Suite"
+      },
+      {
+        "command": "jest-genie.removeApiKey",
+        "title": "Jest Genie: Remove API Key"
+      },
+      {
+        "command": "jest-genie.updateApiKey",
+        "title": "Jest Genie: Update API Key"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "jest-genie.generateTestSuite",
+        "key": "cmd+shift+j",
+        "when": "editorTextFocus"
       }
     ]
   },
@@ -66,6 +112,7 @@
   },
   "dependencies": {
     "delay": "^5.0.0",
-    "openai-api": "^1.3.1"
+    "dotenv": "^16.0.3",
+    "openai": "^3.2.1"
   }
 }

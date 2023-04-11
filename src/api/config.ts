@@ -1,9 +1,12 @@
-export const config = {
-  model_engine: 'text-davinci-002',
+import { GPTModelConfig } from './types'
+
+export const config: GPTModelConfig = {
+  model: 'gpt-3.5-turbo',
   completions: 1,
   max_tokens: 1024,
   stop: '\\n',
   temperature: 0.25,
-  best_of: 1,
-  topP: .75
+  top_p: 0.9,
+  frequency_penalty: 0.5,
+  presence_penalty: 0.5,
 }

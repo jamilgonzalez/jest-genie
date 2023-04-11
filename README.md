@@ -1,64 +1,31 @@
-# Mock Data Generator GPT VS Code Extension
+## Jest-Genie: Test Suite Generator Using OpenAi's GPT-3.5 Turbo Model
 
-This VS Code extension allows you to generate mock test data for TypeScript types and interfaces. Simply highlight the type or interface in your code, and the extension will generate mock data and write it to a `fixtures.ts` file in your project.
+- JestGenie is a tool that uses OpenAI's GPT technology to generate test suites for React projects written in typescript
 
-## GPT
+- Typescript is especially useful here since it gives GPT-3.5 Turbo types and/or interfaces to work with which it will use to create more accurate and contextual test suites
 
-We use the OpenAI GPT-3 API with the following configuration:
+- You can generate tests by right clicking a file and selecting "Jest Genie: Generate Tests" option in the menu
 
-model_engine: 'text-davinci-002'
-completions: 1
-max_tokens: 1024
-stop: '\\n'
+### Note:
 
-## Usage
+- GPT-3.5 Turbo can only handle 4,096 tokens in a given request (at 4 tokens a word we get ~1,024 words)
 
-To run this project locally, you will need to obtain an API key from OpenAI.
+- Both input and output tokens count toward this limit so some files may be too large to process
 
-Once you have your API key, you will need to create a `.env` file at the root of your directory and add the following line:
+- This will become less of an issue as OpenAI opens up GPT-4 and future models to their api
 
-```
-GPT_API_KEY=your-api-key-here
+## Requirements
 
-```
+- You will need to get an api key from https://platform.openai.com/account/api-keys
 
-Replace `your-api-key-here` with your actual API key. This will allow the extension to communicate with the OpenAI GPT API and generate mock data for your TypeScript types and interfaces.
+## Demo
 
-## Run the Plugin
+https://user-images.githubusercontent.com/21287418/230697326-bfdc5906-a805-4506-a2f5-f9d0152128e9.mp4
 
-1. Run `yarn install` to install dependencies.
-2. Run `yarn start` to compile and run the project in watch mode.
-3. Press F5 to launch the extension locally.
-4. To generate mock data for a TypeScript type or interface, highlight the type or interface and select "Generate Fixtures GPT" from the context menu.
-5. In the prompt that appears, enter the amount of fixtures you want generated and hit enter.
-6. The extension will generate mock data and write it to a `fixtures.ts` file in your project.
+## Support
 
-## Example
+If you find my work helpful, please consider supporting me by sending a donation to my Bitcoin address:
 
-Suppose you have the following TypeScript interface in your code:
+![support_via_btc](https://user-images.githubusercontent.com/21287418/230697525-f913f028-3459-4aa8-9911-f10eb27f01c7.jpg)
 
-```
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  age: number;
-  isPremium: boolean;
-}
-
-```
-
-To generate mock data for this interface, simply highlight the interface and select "Generate Fixtures GPT" from the context menu. You can then enter the amount of fixtures you want created.
-
-The extension will generate mock data for the `User` interface and write it to a `fixtures.ts` file in your project:
-
-```
-export const userFixture: User = {
-  id: 1,
-  name: 'string',
-  email: 'string',
-  age: 35,
-  isPremium: false,
-};
-
-```
+Your contributions will help me continue to create high-quality content and improve my projects. Thank you for your support!
