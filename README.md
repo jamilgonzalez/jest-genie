@@ -22,9 +22,10 @@
 
 1. Run `yarn install` to install all of the project dependencies
 2. Then run `yarn start` to compile the project in watch mode
-3. Hit `F5` or click the debugger in the menu and run in debug mode (with no configuration)
-4. Press `CMD+Shift+P` (in the newly opened VSCode window)
-5. Type JestGenie to get the list of commands to run for the extension
+3. Open `generateTestSuite.ts`
+4. Hit `F5` or click the debugger in the menu and run in debug mode (with no configuration)
+5. Press `CMD+Shift+P` (in the newly opened VSCode window)
+6. Type JestGenie to get the list of commands to run for the extension
 
 ## Demo
 

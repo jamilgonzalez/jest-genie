@@ -1,8 +1,8 @@
 const path = require('path')
-import * as vscode from 'vscode'
 import { TextEncoder } from 'util'
+import * as vscode from 'vscode'
 import { OpenAI } from '../api/types'
-import { VscodeCommand } from './types'
+import { TestSuitePromptType, VscodeCommand } from './types'
 import { charactersPerToken, outputChannel } from './utils'
 
 export class GenerateTestSuite implements VscodeCommand {
@@ -55,7 +55,7 @@ export class GenerateTestSuite implements VscodeCommand {
     }
   }
 
-  private prompt = (fc: string) =>
+  private jestPrompt = (fc: string) =>
     `As an AI language model, your task is to generate a comprehensive test suite for a React functional component using TypeScript.` +
     `The test suite should utilize the Jest testing framework and the React Testing Library.` +
     `Focus on ensuring that all UI components are properly rendering and handling user interactions, while also including appropriate test fixtures for different scenarios.\n` +
@@ -64,6 +64,15 @@ export class GenerateTestSuite implements VscodeCommand {
     `Here is the functional component for which the test suite needs to be created:\n` +
     `${fc}\n` +
     `Remember, the test suite should be compatible with a TypeScript project and make use of Jest and React Testing Library.`
+
+  private findTestSuitePrompt = (testSuite: string, fc: string): string => {
+    if (testSuite.toUpperCase().includes(TestSuitePromptType.JEST)) {
+      return this.jestPrompt(fc)
+    } else {
+      vscode.window.showErrorMessage(`Test suite not supported.`)
+      return ''
+    }
+  }
 
   private getApiCost = (globalState: vscode.Memento) => {
     // track api cost based on tokens used in jest-genie
@@ -107,6 +116,14 @@ export class GenerateTestSuite implements VscodeCommand {
       return
     }
 
+    let testSuiteType = ''
+    if (!testSuiteType) {
+      testSuiteType =
+        (await vscode.window.showInputBox({
+          prompt: 'Enter type of test suite (Jest, Mocha, Chai, etc): ',
+        })) || ''
+    }
+
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
@@ -115,7 +132,7 @@ export class GenerateTestSuite implements VscodeCommand {
       },
       async (_progress, _token) => {
         const { response, total_usage, error } = await this.openAiInteractor.postGPTPrompt(
-          this.prompt(textInFile),
+          this.findTestSuitePrompt(testSuiteType, textInFile),
           api_key || '',
         )
 
