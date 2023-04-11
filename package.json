@@ -8,7 +8,7 @@
     "url": "https://github.com/jamilgonzalez/jest-genie"
   },
   "description": "Generates test suites using OpenAI's GPT-3 API",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "engines": {
     "vscode": "^1.77.0"
   },
@@ -33,6 +33,14 @@
         {
           "command": "jest-genie.generateTestSuite",
           "group": "navigation"
+        },
+        {
+          "command": "jest-genie.removeApiKey",
+          "title": "Jest Genie: Remove API Key"
+        },
+        {
+          "command": "jest-genie.updateApiKey",
+          "title": "Jest Genie: Update API Key"
         }
       ],
       "editor/context": [
@@ -40,13 +48,31 @@
           "command": "jest-genie.generateTestSuite",
           "when": "resourceLangId == javascript || resourceLangId == typescript || resourceLangId == typescriptreact",
           "group": "navigation"
+        },
+        {
+          "command": "jest-genie.removeApiKey",
+          "title": "Jest Genie: Remove API Key",
+          "group": "navigation"
+        },
+        {
+          "command": "jest-genie.updateApiKey",
+          "title": "Jest Genie: Update API Key",
+          "group": "navigation"
         }
       ]
     },
     "commands": [
       {
         "command": "jest-genie.generateTestSuite",
-        "title": "Jest Genie > Generate Test Suite"
+        "title": "Jest Genie: Generate Test Suite"
+      },
+      {
+        "command": "jest-genie.removeApiKey",
+        "title": "Jest Genie: Remove API Key"
+      },
+      {
+        "command": "jest-genie.updateApiKey",
+        "title": "Jest Genie: Update API Key"
       }
     ],
     "keybindings": [

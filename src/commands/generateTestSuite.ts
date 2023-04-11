@@ -3,13 +3,12 @@ import * as vscode from 'vscode'
 import { TextEncoder } from 'util'
 import { OpenAI } from '../api/types'
 import { VscodeCommand } from './types'
-import { outputChannel } from './utils'
+import { charactersPerToken, outputChannel } from './utils'
 
 export class GenerateTestSuite implements VscodeCommand {
   private context: vscode.ExtensionContext
   private openAiInteractor: OpenAI
   private commandId: string
-  private charactersPerToken = 4
 
   constructor(context: vscode.ExtensionContext, openAiInteractor: OpenAI, commandId: string) {
     this.context = context
@@ -17,28 +16,24 @@ export class GenerateTestSuite implements VscodeCommand {
     this.commandId = commandId
   }
 
-  // generates a uri for the new file based on the current file user is in
-  private generateUri = () => {
-    if (!vscode.window.activeTextEditor) {
-      vscode.window.showErrorMessage('No active editor found.')
-      return
-    }
-
-    const currentFilePath = vscode.window.activeTextEditor.document.fileName
-
-    const componentName = currentFilePath
+  private componentName = (activeTextEditor: vscode.TextEditor) =>
+    activeTextEditor.document.fileName
       .split('/')
       .find((item) => item.includes('.'))
       ?.split('.')[0]
 
-    const currentFileDirectory = path.dirname(currentFilePath)
+  private currentFilePath = (activeTextEditor: vscode.TextEditor) =>
+    activeTextEditor.document.fileName
 
+  private testSuiteFilePath = (activeTextEditor: vscode.TextEditor) => {
+    const currentFilePath = this.currentFilePath(activeTextEditor)
+    const componentName = this.componentName(activeTextEditor)
+    const currentFileDirectory = path.dirname(currentFilePath)
     const ext = path.extname(currentFilePath)
 
-    const filePath = vscode.Uri.file(
+    return vscode.Uri.file(
       path.join(currentFileDirectory, `/__tests__/${componentName ?? 'index'}.test${ext}`),
     )
-    return { componentName, filePath }
   }
 
   private createFileInCurrentDirectory = async (
@@ -80,12 +75,15 @@ export class GenerateTestSuite implements VscodeCommand {
     return { key, cost: Number(globalState.get<string>(key)) || 0, month }
   }
 
-  private numberOfTokens = (text: string) => Math.ceil(text.length / this.charactersPerToken)
+  private numberOfTokens = (text: string) => Math.ceil(text.length / charactersPerToken)
 
   private generateTestSuite = async () => {
+    const activeTextEditor = vscode.window.activeTextEditor
+    if (!activeTextEditor) {
+      vscode.window.showErrorMessage('No active editor found.')
+      return
+    }
     let api_key = this.context.globalState.get<string>('GPT_API_KEY')
-
-    // Store the API key in global state
     if (!api_key) {
       api_key = await vscode.window.showInputBox({
         prompt: 'Enter your API key: ',
@@ -94,8 +92,8 @@ export class GenerateTestSuite implements VscodeCommand {
       await this.context.globalState.update('GPT_API_KEY', api_key)
     }
 
+    // 2. get text from active editor
     const textInFile = vscode.window.activeTextEditor?.document.getText()
-
     if (!textInFile) {
       vscode.window.showErrorMessage('No text selected or found in file.')
       return
@@ -109,30 +107,28 @@ export class GenerateTestSuite implements VscodeCommand {
       return
     }
 
-    const uriInfo = this.generateUri()
-
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: `Jest Genie: Generating test suite for ${uriInfo?.componentName}`,
+        title: `Jest Genie: Generating test suite for ${this.componentName(activeTextEditor)}`,
         cancellable: false,
       },
-      async (progress, token) => {
+      async (_progress, _token) => {
         const { response, total_usage, error } = await this.openAiInteractor.postGPTPrompt(
-          this.prompt(textInFile!),
+          this.prompt(textInFile),
           api_key || '',
         )
 
         if (response && total_usage) {
           const { cost, key, month } = this.getApiCost(this.context.globalState)
           const monthApiCost = cost + total_usage * 0.000002
-
           this.context.globalState.update(key, monthApiCost)
 
           outputChannel.replace(`Jest Genie:\n* API Cost for ${month}: $${monthApiCost}\n`)
           outputChannel.show()
 
-          await this.createFileInCurrentDirectory(response, uriInfo?.filePath)
+          const filePath = this.testSuiteFilePath(activeTextEditor)
+          await this.createFileInCurrentDirectory(response, filePath)
         } else {
           vscode.window.showErrorMessage('Error connecting to GPT: ' + error)
           // TODO: only run this code if the error is an invalid api key
