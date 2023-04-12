@@ -11,7 +11,7 @@ type OpenAiResponse = {
 type GPTModelConfig = {
   model: string
   completions: number
-  max_tokens: number
+  max_tokens?: number
   stop: string
   temperature: number
   top_p: number

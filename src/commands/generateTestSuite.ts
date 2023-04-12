@@ -86,15 +86,17 @@ export class GenerateTestSuite implements VscodeCommand {
 
     const selectedCode = highlightedText || textInFile
 
-    console.log('selectedCode', selectedCode)
-
-    if (this.numberOfTokens(selectedCode) > 2043) {
+    if (this.numberOfTokens(selectedCode) > 2731) {
       vscode.window.showErrorMessage(
         `File is too large (${this.numberOfTokens(selectedCode)} tokens).\n` +
           `Please select a smaller function or reduce the size of this one.\n`,
       )
       return
     }
+
+    vscode.window.showInformationMessage(
+      `${this.numberOfTokens(selectedCode)} tokens used of 2731 input limit`,
+    )
 
     let api_key = this.context.globalState.get<string>('GPT_API_KEY')
 
