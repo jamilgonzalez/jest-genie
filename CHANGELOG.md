@@ -1,9 +1,11 @@
 # Change Log
 
-All notable changes to the "jest-genie" extension will be documented in this file.
+## v0.1.3
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+- Enables support for highlighting code across multiple files
+- Doubled the amount of code submission supported by the API
+- Minor bug fixes
 
-## [Unreleased]
+## v0.1.2
 
-- Initial release
+- Enables support for removing and updating OpenAI api keys
