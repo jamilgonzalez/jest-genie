@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { Command } from '../commands/utils'
+import { Command } from '../commands/utils/constants'
 
 class TreeView {
   private viewId: string

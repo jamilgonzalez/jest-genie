@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 import { GenerateTestSuite } from './commands/generateTestSuite'
-import { Command } from './commands/utils'
+import { Command } from './commands/utils/constants'
 import { openAiInteractor } from './api'
 import RemoveApiKey from './commands/removeApiKey'
 import UpdateApiKey from './commands/updateApiKey'

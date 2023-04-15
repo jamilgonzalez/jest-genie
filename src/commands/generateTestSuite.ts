@@ -2,9 +2,9 @@ const path = require('path')
 import * as vscode from 'vscode'
 import { TextEncoder } from 'util'
 import { OpenAI } from '../api/types'
-import { VscodeCommand } from './types'
-import { charactersPerToken } from './utils'
-import { jest_prompt } from './prompts'
+import { VscodeCommand } from './utils/types'
+import { charactersPerToken } from './utils/constants'
+import { jest_prompt } from './utils/prompts'
 
 export class GenerateTestSuite implements VscodeCommand {
   context: vscode.ExtensionContext

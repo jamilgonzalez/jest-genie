@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { VscodeCommand } from './types'
+import { VscodeCommand } from './utils/types'
 
 class RemoveApiKey implements VscodeCommand {
   private context: vscode.ExtensionContext

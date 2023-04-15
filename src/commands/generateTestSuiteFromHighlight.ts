@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 import { OpenAI } from '../api/types'
 import { GenerateTestSuite } from './generateTestSuite'
-import { jest_prompt } from './prompts'
+import { jest_prompt } from './utils/prompts'
 
 class GenerateTestSuiteFromHighlight extends GenerateTestSuite {
   commandId: string
