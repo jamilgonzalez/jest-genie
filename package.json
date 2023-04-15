@@ -2,7 +2,7 @@
   "name": "jest-genie",
   "displayName": "Jest Genie",
   "publisher": "jamilgonzalez",
-  "icon": "./jest-genie.png",
+  "icon": "./jest-genie_2.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/jamilgonzalez/jest-genie"
@@ -32,38 +32,44 @@
       "editor/title": [
         {
           "command": "jest-genie.generateTestSuite",
-          "group": "navigation"
-        },
-        {
-          "command": "jest-genie.removeApiKey",
-          "title": "Jest Genie: Remove API Key"
-        },
-        {
-          "command": "jest-genie.updateApiKey",
-          "title": "Jest Genie: Update API Key"
-        }
-      ],
-      "editor/context": [
-        {
-          "command": "jest-genie.generateTestSuite",
-          "when": "resourceLangId == javascript || resourceLangId == typescript || resourceLangId == typescriptreact",
-          "group": "navigation"
+          "group": "jest genie"
         },
         {
           "command": "jest-genie.removeApiKey",
           "title": "Jest Genie: Remove API Key",
-          "group": "navigation"
+          "group": "jest genie"
         },
         {
           "command": "jest-genie.updateApiKey",
           "title": "Jest Genie: Update API Key",
-          "group": "navigation"
+          "group": "jest genie"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "jest-genie.generateTestSuiteFromHighlight",
+          "when": "editorHasSelection && (resourceLangId == javascript || resourceLangId == typescript || resourceLangId == typescriptreact)",
+          "group": "jest genie"
+        },
+        {
+          "command": "jest-genie.removeApiKey",
+          "title": "Jest Genie: Remove API Key",
+          "group": "jest genie"
+        },
+        {
+          "command": "jest-genie.updateApiKey",
+          "title": "Jest Genie: Update API Key",
+          "group": "jest genie"
         }
       ]
     },
     "commands": [
       {
         "command": "jest-genie.generateTestSuite",
+        "title": "Jest Genie: Generate Test Suite"
+      },
+      {
+        "command": "jest-genie.generateTestSuiteFromHighlight",
         "title": "Jest Genie: Generate Test Suite"
       },
       {
