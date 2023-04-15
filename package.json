@@ -2,7 +2,7 @@
   "name": "jest-genie",
   "displayName": "Jest Genie",
   "publisher": "jamilgonzalez",
-  "icon": "./jest-genie_2.png",
+  "icon": "./jest_genie_2.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/jamilgonzalez/jest-genie"
